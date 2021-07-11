@@ -33,13 +33,13 @@
     <None Include="res\shaders\BasicFragment.shader" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Main.hpp">
+    <ClInclude Include="src\headers\Main.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Mesh.hpp">
+    <ClInclude Include="src\headers\Mesh.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Player.hpp">
+    <ClInclude Include="src\headers\Player.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

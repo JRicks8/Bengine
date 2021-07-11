@@ -1,4 +1,4 @@
-#include "Main.hpp"
+#include "headers/Main.hpp"
 
 static void GLClearError() {
 

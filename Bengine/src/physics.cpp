@@ -1,5 +1,5 @@
-#include "Mesh.hpp"
-#include "Player.hpp"
+#include "headers/Mesh.hpp"
+#include "headers/Player.hpp"
 #include <iostream>
 
 void GenerateAABBfromVBO(std::vector<float> &inVBO, glm::vec3& outMaxAABB, glm::vec3 &outMinAABB, unsigned int vertex_size) {

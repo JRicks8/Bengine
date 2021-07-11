@@ -159,9 +159,9 @@
     <None Include="res\shaders\BasicVertex.shader" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Main.hpp" />
-    <ClInclude Include="src\Mesh.hpp" />
-    <ClInclude Include="src\Player.hpp" />
+    <ClInclude Include="src\headers\Main.hpp" />
+    <ClInclude Include="src\headers\Mesh.hpp" />
+    <ClInclude Include="src\headers\Player.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
