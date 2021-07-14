@@ -128,28 +128,52 @@ int main(){
 	Mesh suzanne;
 	suzanne.name = "suzanne";
 	suzanne.modelPosition_WorldSpace = glm::vec3(3, 2, 2);
+	suzanne.rigidbody.position = suzanne.modelPosition_WorldSpace;
 	suzanne.textureID = 0;
+
+	suzanne.rigidbody.shape.mass = 10.0f;
+	suzanne.rigidbody.shape.width = 1.0f;
+	suzanne.rigidbody.shape.height = 1.0f;
+	suzanne.rigidbody.shape.depth = 1.0f;
 	meshes.push_back(suzanne);
 
 	//cylinder
 	Mesh cylinder;
 	cylinder.name = "cylinder";
 	cylinder.modelPosition_WorldSpace = glm::vec3(-3, 2, 2);
+	cylinder.rigidbody.position = cylinder.modelPosition_WorldSpace;
 	cylinder.textureID = 0;
+
+	cylinder.rigidbody.shape.mass = 10.0f;
+	cylinder.rigidbody.shape.width = 1.0f;
+	cylinder.rigidbody.shape.height = 1.0f;
+	cylinder.rigidbody.shape.depth = 1.0f;
 	meshes.push_back(cylinder);
 
 	//icosphere (light)
 	Mesh icosphere;
 	icosphere.name = "icosphere";
 	icosphere.modelPosition_WorldSpace = glm::vec3(0, 2, 2);
+	icosphere.rigidbody.position = icosphere.modelPosition_WorldSpace;
 	icosphere.textureID = 1;
+
+	icosphere.rigidbody.shape.mass = 10.0f;
+	icosphere.rigidbody.shape.width = 1.0f;
+	icosphere.rigidbody.shape.height = 1.0f;
+	icosphere.rigidbody.shape.depth = 1.0f;
 	meshes.push_back(icosphere);
 
 	//plane
 	Mesh plane;
 	plane.name = "plane";
 	plane.modelPosition_WorldSpace = glm::vec3(0, 0, 0);
+	plane.rigidbody.position = plane.modelPosition_WorldSpace;
 	plane.textureID = 0;
+
+	plane.rigidbody.shape.mass = 0.0f;
+	plane.rigidbody.shape.width = 1.0f;
+	plane.rigidbody.shape.height = 1.0f;
+	plane.rigidbody.shape.depth = 1.0f;
 	meshes.push_back(plane);
 
 #pragma endregion
@@ -176,7 +200,6 @@ int main(){
 		loadOBJ(meshFilePaths[i], raw_vertex_data);
 		indexVBO(raw_vertex_data, EBOs[i], VBOs[i], vertex_size);
 		raw_vertex_data.clear();
-		GenerateAABBfromVBO(VBOs[i], meshes[i].maxAABB, meshes[i].minAABB, vertex_size);
 	}
 
 	GLuint vao;
@@ -254,30 +277,25 @@ int main(){
 
 #pragma endregion
 
+#pragma region physics initialization
+
+	InitializeRigidBodies(meshes);
+
+#pragma endregion
+
 #pragma region Setting up player and controls
 
 	Player player;
 
-	player.position = glm::vec3(0.0f, 0.0f, 0.0f);
+	player.position = glm::vec3(0.0f, 2.0f, 0.0f);
 	player.cam_angle_horizontal = 3.14f;
 	player.cam_angle_vertical = 0.0f;
 	player.cam_near_clipping_plane = 0.1f;
 	player.cam_far_clipping_plane = 50.0f;
 	player.fov = 70.0f;
 
-	player.speed = 20.0f;
-	player.mouseSpeed = 10.0f;
-
-	player.Xwidth = 1.0f;
-	player.Zdepth = 1.0f;
-	player.height = 1.0f;
-
-	float x = player.Xwidth / 2;
-	float y = player.height / 2;
-	float z = player.Zdepth / 2;
-
-	player.maxAABB = glm::vec3(x, y, z);
-	player.minAABB = -player.maxAABB;
+	player.speed = 10.0f;
+	player.mouseSpeed = 2.5f;
 
 #pragma endregion
 
@@ -301,6 +319,7 @@ int main(){
 	while (!glfwWindowShouldClose(window)) {
 
 		GLCALL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+		glClearColor(0.89f, 0.52f, 0.57f, 0.0f);
 
 		// The meaty operations :o
 		double t_now = glfwGetTime();
@@ -313,6 +332,7 @@ int main(){
 		}
 
 		float dt = float(t_now - t_last);
+		t_last = glfwGetTime();
 
 		double xpos, ypos;
 		int windowX, windowY;
@@ -377,14 +397,17 @@ int main(){
 		GLCALL(glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(model)));
 
 		LightPosition_WorldSpace = glm::vec3(cos(t_now * 1.5), 1, sin(t_now * 1.5)) * 2.5f;
-		meshes[2].modelPosition_WorldSpace = LightPosition_WorldSpace;
 
 		GLCALL(glUniform3f(uniLightPos, LightPosition_WorldSpace.x, LightPosition_WorldSpace.y, LightPosition_WorldSpace.z));
 		GLCALL(glUniform1f(uniLightPower, LightPower));
 		GLCALL(glUniform3f(uniLightColor, LightColor.x, LightColor.y, LightColor.z));
 
+		StepRigidbodySimulation(meshes, dt);
+
 		for (int i = 0; i < meshCount; i++) {
-			CheckForPlayerCollisions(meshes, player);
+			printf("mesh pos: (%.2f, %.2f, %.2f)\n", meshes[i].modelPosition_WorldSpace.x, meshes[i].modelPosition_WorldSpace.y, meshes[i].modelPosition_WorldSpace.z);
+			printf("rb pos: (%.2f, %.2f, %.2f)\n", meshes[i].rigidbody.position.x, meshes[i].rigidbody.position.y, meshes[i].rigidbody.position.z);
+			meshes[i].modelPosition_WorldSpace = meshes[i].rigidbody.position;
 
 			GLCALL(glUniform3f(uniModelPosition, meshes[i].modelPosition_WorldSpace.x,
 				meshes[i].modelPosition_WorldSpace.y,
@@ -403,8 +426,6 @@ int main(){
 		glfwSwapBuffers(window);
 
 		glfwPollEvents();
-
-		t_last = glfwGetTime();
 	}
 
 	GLCALL(glDeleteProgram(shaderProgram))

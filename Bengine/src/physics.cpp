@@ -1,50 +1,74 @@
+﻿#include <vector>
+
+#include "glm.hpp"
+#include "headers/BoxShape.hpp"
+#include "headers/Rigidbody.hpp"
 #include "headers/Mesh.hpp"
-#include "headers/Player.hpp"
-#include <iostream>
 
-void GenerateAABBfromVBO(std::vector<float> &inVBO, glm::vec3& outMaxAABB, glm::vec3 &outMinAABB, unsigned int vertex_size) {
-	glm::vec3 Max(inVBO[0], inVBO[1], inVBO[2]);
-	glm::vec3 Min = Max;
-
-	for (unsigned int i = vertex_size; i < inVBO.size(); i += vertex_size) {
-
-		Max.x = glm::max(inVBO[i], Max.x);
-		Max.y = glm::max(inVBO[i + 1], Max.y);
-		Max.z = glm::max(inVBO[i + 2], Max.z);
-
-		Min.x = glm::min(inVBO[i], Min.x);
-		Min.y = glm::min(inVBO[i + 1], Min.y);
-		Min.z = glm::min(inVBO[i + 2], Min.z);
-	}
-
-	outMaxAABB = Max;
-	outMinAABB = Min;
+void CalculateBoxInertia(BoxShape &boxShape) {
+	float m = boxShape.mass;
+	float x = boxShape.width;
+	float y = boxShape.height;
+	float z = boxShape.depth;
+	boxShape.iBody = glm::mat3(y * y + z * z, 0.0f, 0.0f,
+								0.0f, x * x + z * z, 0.0f,
+								0.0f, 0.0f, x * x + y * y) * (m / 12);
+	boxShape.iBodyInv = glm::inverse(boxShape.iBody);
 }
 
-bool intersectPlayerAABB(Mesh mesh, Player player) {
-
-	glm::vec3 aMax = mesh.maxAABB + mesh.modelPosition_WorldSpace;
-	glm::vec3 aMin = mesh.minAABB + mesh.modelPosition_WorldSpace;
-	glm::vec3 bMax = player.maxAABB + player.position;
-	glm::vec3 bMin = player.minAABB + player.position;
-
-	bool intersecting = (aMin.x <= bMax.x && aMax.x >= bMin.x) &&
-						(aMin.y <= bMax.y && aMax.y >= bMin.y) &&
-						(aMin.z <= bMax.z && aMax.z >= bMin.z);
-	//if (intersecting)
-	//	std::cout << "Found intersection with " << mesh.name << " AABB values of:"
-	//	<< aMax.x << " " << aMax.y << " " << aMax.z << " " << aMin.x << " " << aMin.y << " " << aMin.z << " and player aabb of: "
-	//	<< bMax.x << " " << bMax.y << " " << bMax.z << " " << bMin.x << " " << bMin.y << " " << bMin.z << std::endl;
-
-	return intersecting;
+void PrintRigidBody(Rigidbody rb) {
+	printf("body p = (%.2f, %.2f, %.2f)\n", rb.position.x, rb.position.y, rb.position.z);
+	printf("body lin momentum = (%.2f, %.2f, %.2f)\n", rb.linearMomentum.x, rb.linearMomentum.y, rb.linearMomentum.z);
 }
 
-void CheckForPlayerCollisions(std::vector<Mesh> &meshes, Player &player) {
+void InitializeRigidBodies(std::vector<Mesh> &meshes) {
+	for (int i = 0; i < meshes.size(); i++) {
+		Rigidbody& rb = meshes[i].rigidbody;
 
-	for (int i = 0; i < meshes.size(); i++){
-		if (intersectPlayerAABB(meshes[i], player)) {
-			glm::vec3 directionToMesh = glm::normalize(player.position - meshes[i].modelPosition_WorldSpace);
-			std::cout << directionToMesh.x << " " << directionToMesh.y << " " << directionToMesh.z << std::endl;
-		}
+		CalculateBoxInertia(rb.shape); // calculate iBody and iBodyInv
+
+		rb.orientation = glm::mat3(0.0f);
+		rb.linearMomentum = { 0.0f, 0.0f, 0.0f };
+		rb.angularMomentum = { 0.0f, 0.0f, 0.0f };
+
+		rb.linearVelocity = rb.linearMomentum / rb.shape.mass; // v(t) = P(t) / M
+		rb.ITensor = rb.orientation * rb.shape.iBodyInv * glm::transpose(rb.orientation); // ITensor = R * iBodyInv * transpose(R);
+		rb.angularVelocity = rb.ITensor * rb.angularMomentum; // omega = ITensor * L
+
+		rb.force = { 0.0f, 0.0f, 0.0f };
+		rb.torque = { 0.0f, 0.0f, 0.0f };
 	}
+}
+
+void ComputeForceAndTorque(Rigidbody &rigidbody) {
+	glm::vec3 f = { 0.0f, 0.5f, 0.0f };
+	rigidbody.force += f;
+	// r is the vector that goes from the COM to the point of force
+	glm::vec3 r = { 0.0f, 0.0f, 0.0f };
+
+	glm::vec3 t = glm::cross(r - rigidbody.position, f);
+	rigidbody.torque += t;
+}
+
+void StepRigidbodySimulation(std::vector<Mesh> &meshes, float dt) {
+
+	for (int i = 0; i < meshes.size(); i++) {
+		Rigidbody& rb = meshes[i].rigidbody;
+
+		if (rb.shape.mass == 0.0f) continue;
+
+		ComputeForceAndTorque(rb);
+
+		rb.ITensor = rb.orientation * rb.shape.iBodyInv * glm::transpose(rb.orientation);
+
+		rb.linearMomentum = rb.force / rb.shape.mass; // P = F/M
+		rb.linearVelocity += rb.linearMomentum * dt; // add momentum * dt to velocity
+		rb.position += rb.linearVelocity * dt;
+
+		rb.angularMomentum = rb.torque * rb.ITensor;
+		rb.angularVelocity += rb.angularMomentum * dt;
+		rb.orientation += rb.angularVelocity * dt;
+	}
+
+	//PrintRigidBody(rigidbodies[0]);
 }

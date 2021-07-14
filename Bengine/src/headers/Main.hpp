@@ -16,6 +16,7 @@
 
 #include "Mesh.hpp"
 #include "Player.hpp"
+#include "BoxShape.hpp"
 
 #define ASSERT(x) if (!(x)) __debugbreak();
 #define GLCALL(x) GLClearError();\
@@ -31,6 +32,6 @@ void indexVBO(
 	int vertex_size
 );
 
-void GenerateAABBfromVBO(std::vector<float> &inVBO, glm::vec3 & outMaxAABB, glm::vec3 & outMinAABB, unsigned int vertex_size);
+void StepRigidbodySimulation(std::vector<Mesh> &meshes, float dt);
 
-void CheckForPlayerCollisions(std::vector<Mesh> &meshes, Player & player);
+void InitializeRigidBodies(std::vector<Mesh> &meshes);
