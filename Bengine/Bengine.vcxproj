@@ -160,6 +160,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\headers\BoxShape.hpp" />
+    <ClInclude Include="src\headers\Contact.hpp" />
     <ClInclude Include="src\headers\Main.hpp" />
     <ClInclude Include="src\headers\Mesh.hpp" />
     <ClInclude Include="src\headers\Player.hpp" />

@@ -1,9 +1,37 @@
 ﻿#include <vector>
+#include <glm.hpp>
+#include <gtx/quaternion.hpp>
 
-#include "glm.hpp"
 #include "headers/BoxShape.hpp"
 #include "headers/Rigidbody.hpp"
 #include "headers/Mesh.hpp"
+
+glm::mat3 QuaternionToMatrix(glm::quat q) {
+	return glm::mat3( // What the fuck?
+		1 - 2 * q.y * q.y - 2 * q.z * q.z, 2 * q.x * q.y - 2 * q.w * q.z, 2 * q.x * q.z + 2 * q.w * q.y,
+		2 * q.x * q.y + 2 * q.w * q.z, 1 - 2 * q.x * q.x - 2 * q.z * q.z, 2 * q.y * q.z - 2 * q.w * q.x,
+		2 * q.x * q.z - 2 * q.w * q.y, 2 * q.y * q.z + 2 * q.w * q.x, 1 - 2 * q.x * q.x - 2 * q.y * q.y
+	);
+}
+
+glm::quat EulerToQuaternion(glm::vec3 euler) // yaw (Z), pitch (Y), roll (X)
+{
+	// Abbreviations for the various angular functions
+	double cy = cos(euler.z * 0.5);
+	double sy = sin(euler.z * 0.5);
+	double cp = cos(euler.y * 0.5);
+	double sp = sin(euler.y * 0.5);
+	double cr = cos(euler.x * 0.5);
+	double sr = sin(euler.x * 0.5);
+
+	glm::quat q;
+	q.w = cr * cp * cy + sr * sp * sy;
+	q.x = sr * cp * cy - cr * sp * sy;
+	q.y = cr * sp * cy + sr * cp * sy;
+	q.z = cr * cp * sy - sr * sp * cy;
+
+	return q;
+}
 
 void CalculateBoxInertia(BoxShape &boxShape) {
 	float m = boxShape.mass;
@@ -27,12 +55,13 @@ void InitializeRigidBodies(std::vector<Mesh> &meshes) {
 
 		CalculateBoxInertia(rb.shape); // calculate iBody and iBodyInv
 
-		rb.orientation = glm::mat3(0.0f);
+		rb.orientation = glm::quat(0, 0, 0, 0);
 		rb.linearMomentum = { 0.0f, 0.0f, 0.0f };
 		rb.angularMomentum = { 0.0f, 0.0f, 0.0f };
 
+		rb.rotationMatrix = QuaternionToMatrix(rb.orientation);
 		rb.linearVelocity = rb.linearMomentum / rb.shape.mass; // v(t) = P(t) / M
-		rb.ITensor = rb.orientation * rb.shape.iBodyInv * glm::transpose(rb.orientation); // ITensor = R * iBodyInv * transpose(R);
+		rb.ITensor = rb.rotationMatrix * rb.shape.iBodyInv * glm::transpose(rb.rotationMatrix); // ITensor = R * iBodyInv * transpose(R);
 		rb.angularVelocity = rb.ITensor * rb.angularMomentum; // omega = ITensor * L
 
 		rb.force = { 0.0f, 0.0f, 0.0f };
@@ -41,10 +70,10 @@ void InitializeRigidBodies(std::vector<Mesh> &meshes) {
 }
 
 void ComputeForceAndTorque(Rigidbody &rigidbody) {
-	glm::vec3 f = { 0.0f, 0.5f, 0.0f };
+	glm::vec3 f = { 0.0f, 0.0f, 0.05f };
 	rigidbody.force += f;
 	// r is the vector that goes from the COM to the point of force
-	glm::vec3 r = { 0.0f, 0.0f, 0.0f };
+	glm::vec3 r = { 0.0f, 0.5f, 0.0f };
 
 	glm::vec3 t = glm::cross(r - rigidbody.position, f);
 	rigidbody.torque += t;
@@ -59,7 +88,7 @@ void StepRigidbodySimulation(std::vector<Mesh> &meshes, float dt) {
 
 		ComputeForceAndTorque(rb);
 
-		rb.ITensor = rb.orientation * rb.shape.iBodyInv * glm::transpose(rb.orientation);
+		rb.ITensor = rb.rotationMatrix * rb.shape.iBodyInv * glm::transpose(rb.rotationMatrix);
 
 		rb.linearMomentum = rb.force / rb.shape.mass; // P = F/M
 		rb.linearVelocity += rb.linearMomentum * dt; // add momentum * dt to velocity
@@ -67,7 +96,7 @@ void StepRigidbodySimulation(std::vector<Mesh> &meshes, float dt) {
 
 		rb.angularMomentum = rb.torque * rb.ITensor;
 		rb.angularVelocity += rb.angularMomentum * dt;
-		rb.orientation += rb.angularVelocity * dt;
+		rb.orientation *= EulerToQuaternion(rb.angularVelocity) * dt;
 	}
 
 	//PrintRigidBody(rigidbodies[0]);
