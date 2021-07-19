@@ -19,17 +19,16 @@ uniform mat4 view;
 uniform mat4 proj;
 
 uniform vec3 lightposition_worldspace;
-uniform vec3 modelposition_worldspace;
 
 void main()
 {
     UV = uv;
     Normal = normal;
 
-    gl_Position = proj * view * model * vec4(vertexposition_local + modelposition_worldspace, 1); // THE ORDER MATTERS, PLEASE DONT FORGET, FOR THE LOVE OF GOD. P * V * M
+    gl_Position = proj * view * model * vec4(vertexposition_local, 1); // THE ORDER MATTERS, PLEASE DONT FORGET, FOR THE LOVE OF GOD. P * V * M
 
     //worldspace position
-    VertexPosition_Worldspace = (model * vec4(vertexposition_local, 1)).xyz + modelposition_worldspace;
+    VertexPosition_Worldspace = (model * vec4(vertexposition_local, 1)).xyz;
     
     //vector from vertex to camera
     vec3 vertexPosition_cameraspace = (view * model * vec4(vertexposition_local, 1)).xyz;

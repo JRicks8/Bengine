@@ -86,7 +86,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>GLEW_STATIC;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>GLEW_STATIC;WIN32;_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)Bengine\Dependencies\GLFW\include;$(SolutionDir)Bengine\Dependencies\GLEW\include;$(SolutionDir)Bengine\Dependencies\SOIL\include;$(SolutionDir)Bengine\Dependencies\GLM;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -95,7 +95,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>glew32s.lib;glfw3.lib;SOIL.lib;opengl32.lib;User32.lib;Gdi32.lib;Shell32.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)Bengine\Dependencies\GLFW\lib;$(SolutionDir)Bengine\Dependencies\GLEW\lib;$(SolutionDir)Bengine\Dependencies\SOIL\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)Bengine\Dependencies\GLFW\lib;$(SolutionDir)Bengine\Dependencies\GLEW\lib;$(SolutionDir)Bengine\Dependencies\SOIL\lib;$(SolutionDir)Bengine\Dependencies\ReactPhysics3D\lib</AdditionalLibraryDirectories>
       <AdditionalOptions>/NODEFAULTLIB:MSVCRT;/NODEFAULTLIB:LIBCMT %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
@@ -105,7 +105,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>GLEW_STATIC;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>GLEW_STATIC;WIN32;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)Bengine\Dependencies\GLFW\include;$(SolutionDir)Bengine\Dependencies\GLEW\include;$(SolutionDir)Bengine\Dependencies\SOIL\include;$(SolutionDir)Bengine\Dependencies\GLM;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -116,7 +116,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>glew32s.lib;glfw3.lib;SOIL.lib;opengl32.lib;User32.lib;Gdi32.lib;Shell32.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)Bengine\Dependencies\GLFW\lib;$(SolutionDir)Bengine\Dependencies\GLEW\lib;$(SolutionDir)Bengine\Dependencies\SOIL\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)Bengine\Dependencies\GLFW\lib;$(SolutionDir)Bengine\Dependencies\GLEW\lib;$(SolutionDir)Bengine\Dependencies\SOIL\lib;$(SolutionDir)Bengine\Dependencies\ReactPhysics3D\lib</AdditionalLibraryDirectories>
       <AdditionalOptions>/NODEFAULTLIB:MSVCRT;/NODEFAULTLIB:LIBCMT %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
@@ -152,19 +152,18 @@
     <ClCompile Include="src\indexVBO.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\objloader.cpp" />
-    <ClCompile Include="src\physics.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="res\shaders\BasicFragment.shader" />
     <None Include="res\shaders\BasicVertex.shader" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\headers\BoxShape.hpp" />
-    <ClInclude Include="src\headers\Contact.hpp" />
+    <ClInclude Include="src\headers\Colliders\BoxCollider.hpp" />
     <ClInclude Include="src\headers\Main.hpp" />
     <ClInclude Include="src\headers\Mesh.hpp" />
     <ClInclude Include="src\headers\Player.hpp" />
     <ClInclude Include="src\headers\Rigidbody.hpp" />
+    <ClInclude Include="src\headers\Transform.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

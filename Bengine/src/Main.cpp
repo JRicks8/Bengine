@@ -111,6 +111,18 @@ int main(){
 	GLCALL(glUseProgram(shaderProgram));
 #pragma endregion
 
+#pragma region physics init
+
+	//glm::quat q0 = { 0, 0, 0, 1 };
+	//glm::quat q1 = { 0.1, 0.5, 0.3, 0.8 };
+	//
+	//std::cout << (q0 * q1).w << " " <<
+	//	(q0 * q1).x << " " <<
+	//	(q0 * q1).y << " " <<
+	//	(q0 * q1).z << " " << std::endl;
+
+#pragma endregion
+
 #pragma region Declare meshes and textures
 
 	const GLuint meshCount = 4;
@@ -127,53 +139,40 @@ int main(){
 	//smooth suzanne
 	Mesh suzanne;
 	suzanne.name = "suzanne";
-	suzanne.modelPosition_WorldSpace = glm::vec3(3, 2, 2);
-	suzanne.rigidbody.position = suzanne.modelPosition_WorldSpace;
+	suzanne.transform = Transform(glm::vec3(3, 2, 2));
+	suzanne.rigidbody = Rigidbody(suzanne.transform);
+	suzanne.rigidbody.collider = BoxCollider();
+	suzanne.rigidbody.InitializeRigidbody();
 	suzanne.textureID = 0;
-
-	suzanne.rigidbody.shape.mass = 10.0f;
-	suzanne.rigidbody.shape.width = 1.0f;
-	suzanne.rigidbody.shape.height = 1.0f;
-	suzanne.rigidbody.shape.depth = 1.0f;
 	meshes.push_back(suzanne);
 
 	//cylinder
 	Mesh cylinder;
 	cylinder.name = "cylinder";
-	cylinder.modelPosition_WorldSpace = glm::vec3(-3, 2, 2);
-	cylinder.rigidbody.position = cylinder.modelPosition_WorldSpace;
+	cylinder.transform = Transform(glm::vec3(-3, 2, 2));
+	cylinder.rigidbody = Rigidbody(cylinder.transform);
+	cylinder.rigidbody.collider = BoxCollider();
+	cylinder.rigidbody.InitializeRigidbody();
 	cylinder.textureID = 0;
-
-	cylinder.rigidbody.shape.mass = 10.0f;
-	cylinder.rigidbody.shape.width = 1.0f;
-	cylinder.rigidbody.shape.height = 1.0f;
-	cylinder.rigidbody.shape.depth = 1.0f;
 	meshes.push_back(cylinder);
 
 	//icosphere (light)
 	Mesh icosphere;
 	icosphere.name = "icosphere";
-	icosphere.modelPosition_WorldSpace = glm::vec3(0, 2, 2);
-	icosphere.rigidbody.position = icosphere.modelPosition_WorldSpace;
-	icosphere.textureID = 1;
-
-	icosphere.rigidbody.shape.mass = 10.0f;
-	icosphere.rigidbody.shape.width = 1.0f;
-	icosphere.rigidbody.shape.height = 1.0f;
-	icosphere.rigidbody.shape.depth = 1.0f;
+	icosphere.transform = Transform(glm::vec3(0, 2, 2));
+	icosphere.rigidbody = Rigidbody(icosphere.transform);
+	icosphere.rigidbody.InitializeRigidbody();
+	icosphere.textureID = 0;
 	meshes.push_back(icosphere);
 
 	//plane
 	Mesh plane;
 	plane.name = "plane";
-	plane.modelPosition_WorldSpace = glm::vec3(0, 0, 0);
-	plane.rigidbody.position = plane.modelPosition_WorldSpace;
+	plane.transform = Transform();
+	plane.rigidbody = Rigidbody(plane.transform);
+	plane.rigidbody.InitializeRigidbody();
+	plane.rigidbody.mass = 0; // interpreted as infinite mass, meaning no movement
 	plane.textureID = 0;
-
-	plane.rigidbody.shape.mass = 0.0f;
-	plane.rigidbody.shape.width = 1.0f;
-	plane.rigidbody.shape.height = 1.0f;
-	plane.rigidbody.shape.depth = 1.0f;
 	meshes.push_back(plane);
 
 #pragma endregion
@@ -268,18 +267,10 @@ int main(){
 	GLuint uniLightPower = glGetUniformLocation(shaderProgram, "lightpower");
 	GLuint uniLightColor = glGetUniformLocation(shaderProgram, "lightcolor");
 
-	GLuint uniModelPosition = glGetUniformLocation(shaderProgram, "modelposition_worldspace");
-
 	GLuint uniTexture = glGetUniformLocation(shaderProgram, "tex");
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
-
-#pragma endregion
-
-#pragma region physics initialization
-
-	InitializeRigidBodies(meshes);
 
 #pragma endregion
 
@@ -316,12 +307,15 @@ int main(){
 
 #pragma endregion
 
+	glm::mat4 matrix = glm::mat4(1);
+
 	while (!glfwWindowShouldClose(window)) {
 
 		GLCALL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-		glClearColor(0.89f, 0.52f, 0.57f, 0.0f);
+		glClearColor(0.29f, 0.32f, 0.57f, 0.0f);
 
-		// The meaty operations :o
+#pragma region fps and dt
+
 		double t_now = glfwGetTime();
 		nbFrames++;
 
@@ -333,6 +327,10 @@ int main(){
 
 		float dt = float(t_now - t_last);
 		t_last = glfwGetTime();
+
+#pragma endregion
+
+#pragma region camera and window
 
 		double xpos, ypos;
 		int windowX, windowY;
@@ -360,7 +358,9 @@ int main(){
 
 		glm::vec3 up = glm::cross(right, front);
 
-		// Do movement input
+#pragma endregion
+
+#pragma region input
 
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
 			player.position += front * player.speed * dt;
@@ -380,6 +380,37 @@ int main(){
 		if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
 			player.position += up * -player.speed * dt;
 		}
+		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+			for (int i = 0; i < meshes.size(); i++) {
+				meshes[i].rigidbody.ApplyForceAtLocalPosition(glm::vec3(0, 5, 0), glm::vec3(0.1f, 0.0f, 0.1f));
+			}
+		}
+		if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
+			std::cout << meshes[0].transform.GetOrientation().w << " " <<
+				meshes[0].transform.GetOrientation().x << " " <<
+				meshes[0].transform.GetOrientation().y << " " <<
+				meshes[0].transform.GetOrientation().z << " " << std::endl;
+		}
+
+#pragma endregion
+
+#pragma region light
+
+		LightPosition_WorldSpace = glm::vec3(cos(t_now * 1.5), 1, sin(t_now * 1.5)) * 2.5f;
+
+		GLCALL(glUniform3f(uniLightPos, LightPosition_WorldSpace.x, LightPosition_WorldSpace.y, LightPosition_WorldSpace.z));
+		GLCALL(glUniform1f(uniLightPower, LightPower));
+		GLCALL(glUniform3f(uniLightColor, LightColor.x, LightColor.y, LightColor.z));
+
+#pragma endregion
+
+#pragma region physics
+
+		
+
+#pragma endregion
+
+#pragma region MVP matrices
 
 		// Model, view, and projection matrices
 		glm::mat4 model = glm::mat4(1.0f);
@@ -394,24 +425,25 @@ int main(){
 
 		GLCALL(glUniformMatrix4fv(uniProj, 1, GL_FALSE, glm::value_ptr(proj)));
 		GLCALL(glUniformMatrix4fv(uniView, 1, GL_FALSE, glm::value_ptr(view)));
-		GLCALL(glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(model)));
 
-		LightPosition_WorldSpace = glm::vec3(cos(t_now * 1.5), 1, sin(t_now * 1.5)) * 2.5f;
-
-		GLCALL(glUniform3f(uniLightPos, LightPosition_WorldSpace.x, LightPosition_WorldSpace.y, LightPosition_WorldSpace.z));
-		GLCALL(glUniform1f(uniLightPower, LightPower));
-		GLCALL(glUniform3f(uniLightColor, LightColor.x, LightColor.y, LightColor.z));
-
-		StepRigidbodySimulation(meshes, dt);
+#pragma endregion
 
 		for (int i = 0; i < meshCount; i++) {
-			printf("mesh pos: (%.2f, %.2f, %.2f)\n", meshes[i].modelPosition_WorldSpace.x, meshes[i].modelPosition_WorldSpace.y, meshes[i].modelPosition_WorldSpace.z);
-			printf("rb pos: (%.2f, %.2f, %.2f)\n", meshes[i].rigidbody.position.x, meshes[i].rigidbody.position.y, meshes[i].rigidbody.position.z);
-			meshes[i].modelPosition_WorldSpace = meshes[i].rigidbody.position;
 
-			GLCALL(glUniform3f(uniModelPosition, meshes[i].modelPosition_WorldSpace.x,
-				meshes[i].modelPosition_WorldSpace.y,
-				meshes[i].modelPosition_WorldSpace.z));
+			meshes[i].rigidbody.Simulate(dt);
+			meshes[i].transform = meshes[i].rigidbody.GetTransform();
+
+			glm::mat4 specificModel = model;
+
+			glm::mat4 translate = glm::translate(meshes[i].transform.GetPosition());
+
+			glm::mat4 rotate = glm::toMat4(meshes[i].transform.GetOrientation());
+
+			glm::mat4 scale = glm::scale(meshes[i].transform.GetScale());
+
+			specificModel = translate * rotate * scale;
+
+			GLCALL(glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(specificModel)));
 
 			GLCALL(glActiveTexture(GL_TEXTURE0 + meshes[i].textureID));
 			GLCALL(glBindTexture(GL_TEXTURE_2D, textures[meshes[i].textureID])); // BIND TEXTURE

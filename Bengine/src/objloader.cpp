@@ -91,4 +91,5 @@ bool loadOBJ(const char* path, std::vector<float>& out_vertices) {
 		out_vertices.push_back(out_normals[i].y);
 		out_vertices.push_back(out_normals[i].z);
 	}
+	return true;
 }

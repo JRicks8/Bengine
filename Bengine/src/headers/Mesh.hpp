@@ -1,13 +1,11 @@
 #pragma once
 
+#include "Transform.hpp"
 #include "Rigidbody.hpp"
 
-typedef struct Mesh {
+struct Mesh {
 	const char* name;
-	glm::vec3 modelPosition_WorldSpace;
-	unsigned int textureID;
-	glm::vec3 maxAABB;
-	glm::vec3 minAABB;
-
+	Transform transform;
 	Rigidbody rigidbody;
+	unsigned int textureID;
 };

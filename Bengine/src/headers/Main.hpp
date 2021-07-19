@@ -12,11 +12,13 @@
 #include <vector>
 
 #include <gtc/matrix_transform.hpp>
+#include <gtx/transform.hpp>
+#include <gtx/quaternion.hpp>
 #include <gtc/type_ptr.hpp>
 
 #include "Mesh.hpp"
 #include "Player.hpp"
-#include "BoxShape.hpp"
+#include "Colliders/BoxCollider.hpp"
 
 #define ASSERT(x) if (!(x)) __debugbreak();
 #define GLCALL(x) GLClearError();\
@@ -31,7 +33,3 @@ void indexVBO(
 	std::vector<float>&out_vbo,
 	int vertex_size
 );
-
-void StepRigidbodySimulation(std::vector<Mesh> &meshes, float dt);
-
-void InitializeRigidBodies(std::vector<Mesh> &meshes);

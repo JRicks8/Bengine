@@ -24,9 +24,6 @@
     <ClCompile Include="src\indexVBO.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\physics.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\shaders\BasicVertex.shader" />
@@ -42,13 +39,13 @@
     <ClInclude Include="src\headers\Player.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\headers\Transform.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="src\headers\Rigidbody.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\headers\BoxShape.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\headers\Contact.hpp">
+    <ClInclude Include="src\headers\Colliders\BoxCollider.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
