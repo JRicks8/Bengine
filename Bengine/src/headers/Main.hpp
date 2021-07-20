@@ -18,18 +18,11 @@
 
 #include "Mesh.hpp"
 #include "Player.hpp"
-#include "Colliders/BoxCollider.hpp"
+
+#include "IndexVBO.hpp"
+#include "OBJLoader.hpp"
 
 #define ASSERT(x) if (!(x)) __debugbreak();
 #define GLCALL(x) GLClearError();\
     x;\
     ASSERT(GLLogCall(#x, __FILE__, __LINE__))
-
-bool loadOBJ(const char* path, std::vector<float>&out_vertices);
-
-void indexVBO(
-	std::vector<float>&in_vbo,
-	std::vector<unsigned short>&out_ebo,
-	std::vector<float>&out_vbo,
-	int vertex_size
-);

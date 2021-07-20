@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -149,20 +149,24 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\indexVBO.cpp" />
+    <ClCompile Include="src\IndexVBO.cpp" />
     <ClCompile Include="src\Main.cpp" />
-    <ClCompile Include="src\objloader.cpp" />
+    <ClCompile Include="src\OBJLoader.cpp" />
+    <ClCompile Include="src\Rigidbody.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="res\shaders\BasicFragment.shader" />
     <None Include="res\shaders\BasicVertex.shader" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\headers\Colliders\BoxCollider.hpp" />
+    <ClInclude Include="src\headers\Collider.hpp" />
+    <ClInclude Include="src\headers\IndexVBO.hpp" />
     <ClInclude Include="src\headers\Main.hpp" />
     <ClInclude Include="src\headers\Mesh.hpp" />
+    <ClInclude Include="src\headers\OBJLoader.hpp" />
     <ClInclude Include="src\headers\Player.hpp" />
     <ClInclude Include="src\headers\Rigidbody.hpp" />
+    <ClInclude Include="src\headers\SphereCollider.hpp" />
     <ClInclude Include="src\headers\Transform.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

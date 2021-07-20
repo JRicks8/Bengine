@@ -141,7 +141,7 @@ int main(){
 	suzanne.name = "suzanne";
 	suzanne.transform = Transform(glm::vec3(3, 2, 2));
 	suzanne.rigidbody = Rigidbody(suzanne.transform);
-	suzanne.rigidbody.collider = BoxCollider();
+	suzanne.rigidbody.SetSphereCollider(SphereCollider());
 	suzanne.rigidbody.InitializeRigidbody();
 	suzanne.textureID = 0;
 	meshes.push_back(suzanne);
@@ -151,7 +151,7 @@ int main(){
 	cylinder.name = "cylinder";
 	cylinder.transform = Transform(glm::vec3(-3, 2, 2));
 	cylinder.rigidbody = Rigidbody(cylinder.transform);
-	cylinder.rigidbody.collider = BoxCollider();
+	cylinder.rigidbody.SetSphereCollider(SphereCollider());
 	cylinder.rigidbody.InitializeRigidbody();
 	cylinder.textureID = 0;
 	meshes.push_back(cylinder);
@@ -161,6 +161,7 @@ int main(){
 	icosphere.name = "icosphere";
 	icosphere.transform = Transform(glm::vec3(0, 2, 2));
 	icosphere.rigidbody = Rigidbody(icosphere.transform);
+	cylinder.rigidbody.SetSphereCollider(SphereCollider());
 	icosphere.rigidbody.InitializeRigidbody();
 	icosphere.textureID = 0;
 	meshes.push_back(icosphere);
@@ -171,7 +172,7 @@ int main(){
 	plane.transform = Transform();
 	plane.rigidbody = Rigidbody(plane.transform);
 	plane.rigidbody.InitializeRigidbody();
-	plane.rigidbody.mass = 0; // interpreted as infinite mass, meaning no movement
+	plane.rigidbody.SetMass(0.0f); // interpreted as infinite mass, meaning no movement
 	plane.textureID = 0;
 	meshes.push_back(plane);
 
@@ -381,7 +382,7 @@ int main(){
 			player.position += up * -player.speed * dt;
 		}
 		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-			for (int i = 0; i < meshes.size(); i++) {
+			for (unsigned int i = 0; i < meshes.size(); i++) {
 				meshes[i].rigidbody.ApplyForceAtLocalPosition(glm::vec3(0, 5, 0), glm::vec3(0.1f, 0.0f, 0.1f));
 			}
 		}
