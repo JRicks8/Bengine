@@ -22,6 +22,9 @@
 #include "IndexVBO.hpp"
 #include "OBJLoader.hpp"
 
+//physics include
+#include "btBulletDynamicsCommon.h"
+
 #define ASSERT(x) if (!(x)) __debugbreak();
 #define GLCALL(x) GLClearError();\
     x;\

@@ -1,11 +1,10 @@
 #pragma once
 
 #include "Transform.hpp"
-#include "Rigidbody.hpp"
+#include "LinearMath/btTransform.h"
 
 struct Mesh {
-	const char* name;
-	Transform transform;
-	Rigidbody rigidbody;
-	unsigned int textureID;
+	const char* name{ "err" };
+	btTransform transform;
+	unsigned int textureID{ 0 };
 };

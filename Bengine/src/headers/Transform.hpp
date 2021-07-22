@@ -16,9 +16,9 @@ public:
 
 	Transform() {}
 
-	glm::vec3 GetPosition() const { return position; }
-	glm::quat GetOrientation() const { return orientation; }
-	glm::vec3 GetScale() const { return scale; }
+	inline glm::vec3 GetPosition() const { return position; }
+	inline glm::quat GetOrientation() const { return orientation; }
+	inline glm::vec3 GetScale() const { return scale; }
 
 	void SetPosition(glm::vec3 input) { position = input; }
 	void SetOrientation(glm::quat input) { orientation = input; }
