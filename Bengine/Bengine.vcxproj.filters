@@ -711,9 +711,6 @@
     <ClInclude Include="src\headers\OBJLoader.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\headers\Transform.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Dependencies\Bullet\Include\Bullet3Collision\BroadPhaseCollision\shared\b3Aabb.h">
       <Filter>Header Files</Filter>
     </ClInclude>

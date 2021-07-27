@@ -1,5 +1,9 @@
 #pragma once
 
+#include "LinearMath/btTransform.h"
+
+#include <glm.hpp>
+
 typedef struct {
 	glm::vec3 position;
 	float fov;
@@ -9,4 +13,5 @@ typedef struct {
 	float cam_far_clipping_plane;
 	float speed;
 	float mouseSpeed;
+	btTransform transform;
 } Player;

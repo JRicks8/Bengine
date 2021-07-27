@@ -76,6 +76,22 @@ static unsigned int CreateShaderProgram(const std::string& vertexShader, const s
 
 	return program;
 }
+/// <summary>
+/// Converts glm::vec3 to btVector3.
+/// </summary>
+/// <param name="v"></param>
+/// <returns></returns>
+static btVector3 Vec3ToBt(const glm::vec3 v) {
+	return btVector3(v.x, v.y, v.z);
+}
+/// <summary>
+/// Converts btVector3 to glm::vec3.
+/// </summary>
+/// <param name="v"></param>
+/// <returns></returns>
+static glm::vec3 BtToVec3(const btVector3 v) {
+	return glm::vec3(v.getX(), v.getY(), v.getZ());
+}
 
 int main(){
 	GLFWwindow* window;
@@ -140,6 +156,37 @@ int main(){
 	//collision shapes
 	btAlignedObjectArray<btCollisionShape*> collisionShapes;
 
+	//Player
+	{
+		//btCollisionShape* colShape = new btBoxShape(btVector3(1,1,1));
+		btCollisionShape* colShape = new btCapsuleShape(btScalar(1.0), btScalar(2.0));
+		collisionShapes.push_back(colShape);
+	
+		/// Create Dynamic Objects
+		btTransform startTransform;
+		startTransform.setIdentity();
+	
+		btScalar mass(1.f);
+	
+		//rigidbody is dynamic if and only if mass is non zero, otherwise static
+		bool isDynamic = (mass != 0.f);
+	
+		btVector3 localInertia(0, 0, 0);
+		if (isDynamic)
+			colShape->calculateLocalInertia(mass, localInertia);
+	
+		startTransform.setOrigin(btVector3(0, 3, 0));
+	
+		//using motionstate is recommended, it provides interpolation capabilities, and only synchronizes 'active' objects
+		btDefaultMotionState* myMotionState = new btDefaultMotionState(startTransform);
+		btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, colShape, localInertia);
+		btRigidBody* body = new btRigidBody(rbInfo);
+		body->setAngularFactor(btScalar(0));
+		body->setFriction(btScalar(3.0f));
+	
+		dynamicsWorld->addRigidBody(body);
+	}
+
 	//smooth suzanne
 	Mesh suzanne;
 	suzanne.name = "suzanne";
@@ -164,12 +211,13 @@ int main(){
 		if (isDynamic)
 			colShape->calculateLocalInertia(mass, localInertia);
 
-		startTransform.setOrigin(btVector3(0, 3, 0));
+		startTransform.setOrigin(btVector3(-3, 3, 0));
 
 		//using motionstate is recommended, it provides interpolation capabilities, and only synchronizes 'active' objects
 		btDefaultMotionState* myMotionState = new btDefaultMotionState(startTransform);
 		btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, colShape, localInertia);
 		btRigidBody* body = new btRigidBody(rbInfo);
+		body->setFriction(btScalar(.1f));
 
 		dynamicsWorld->addRigidBody(body);
 	}
@@ -376,16 +424,15 @@ int main(){
 #pragma region Setting up player and controls
 
 	Player player;
-
-	player.position = glm::vec3(0.0f, 2.0f, 5.0f);
+	player.position = { 0, 0, 0 };
 	player.cam_angle_horizontal = 3.14f;
 	player.cam_angle_vertical = 0.0f;
 	player.cam_near_clipping_plane = 0.1f;
 	player.cam_far_clipping_plane = 50.0f;
 	player.fov = 70.0f;
 
-	player.speed = 10.0f;
-	player.mouseSpeed = 0.0f;
+	player.speed = 10.0f / 500.0f;
+	player.mouseSpeed = 2.5f / 500.0f;
 
 #pragma endregion
 
@@ -436,10 +483,13 @@ int main(){
 		glfwGetCursorPos(window, &xpos, &ypos);
 		glfwSetCursorPos(window, windowX / 2, windowY / 2);
 
-		player.cam_angle_horizontal += player.mouseSpeed * float(windowX / 2 - xpos) * dt;
-		player.cam_angle_vertical += player.mouseSpeed * float(windowY / 2 - ypos) * dt;
-		if (player.cam_angle_vertical > glm::radians(90.0f)) player.cam_angle_vertical = glm::radians(90.0f);
-		if (player.cam_angle_vertical < glm::radians(-90.0f)) player.cam_angle_vertical = glm::radians(-90.0f);
+		int focused = glfwGetWindowAttrib(window, GLFW_FOCUSED);
+		if (focused) {
+			player.cam_angle_horizontal += player.mouseSpeed * float(windowX / 2 - xpos);
+			player.cam_angle_vertical += player.mouseSpeed * float(windowY / 2 - ypos);
+			if (player.cam_angle_vertical > glm::radians(89.0f)) player.cam_angle_vertical = glm::radians(89.0f);
+			if (player.cam_angle_vertical < glm::radians(-89.0f)) player.cam_angle_vertical = glm::radians(-89.0f);
+		}
 
 		// View Directions
 		glm::vec3 front(
@@ -449,9 +499,9 @@ int main(){
 		);
 
 		glm::vec3 right(
-			sin(player.cam_angle_horizontal - 3.14f / 2.0f),
+			sin(player.cam_angle_horizontal - 3.1415f / 2.0f),
 			0.0f,
-			cos(player.cam_angle_horizontal - 3.14f / 2.0f)
+			cos(player.cam_angle_horizontal - 3.1415f / 2.0f)
 		);
 
 		glm::vec3 up = glm::cross(right, front);
@@ -461,29 +511,56 @@ int main(){
 #pragma region input
 
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-			player.position += front * player.speed;
+			//player.position += front * player.speed;
+			btCollisionObject* obj = dynamicsWorld->getCollisionObjectArray()[0]; // the first index of the collision objects array is always the player
+			btRigidBody* body = btRigidBody::upcast(obj);
+			body->activate();
+			btVector3 adjustedFront = Vec3ToBt(glm::normalize(glm::vec3(front.x, 0, front.z)));
+			body->applyCentralForce(player.speed * adjustedFront * 1000);
 		}
 		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-			player.position += right * -player.speed;
+			//player.position += right * -player.speed;
+			btCollisionObject* obj = dynamicsWorld->getCollisionObjectArray()[0];
+			btRigidBody* body = btRigidBody::upcast(obj);
+			body->activate();
+			btVector3 adjustedRight = Vec3ToBt(glm::normalize(glm::vec3(right.x, 0, right.z)));
+			body->applyCentralForce(-player.speed * adjustedRight * 1000);
 		}
 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-			player.position += front * -player.speed;
+			//player.position += front * -player.speed;
+			btCollisionObject* obj = dynamicsWorld->getCollisionObjectArray()[0];
+			btRigidBody* body = btRigidBody::upcast(obj);
+			body->activate();
+			btVector3 adjustedFront = Vec3ToBt(glm::normalize(glm::vec3(front.x, 0, front.z)));
+			body->applyCentralForce(-player.speed * adjustedFront * 1000);
 		}
 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-			player.position += right * player.speed;
+			//player.position += right * player.speed;
+			btCollisionObject* obj = dynamicsWorld->getCollisionObjectArray()[0];
+			btRigidBody* body = btRigidBody::upcast(obj);
+			body->activate();
+			btVector3 adjustedRight = Vec3ToBt(glm::normalize(glm::vec3(right.x, 0, right.z)));
+			body->applyCentralForce(player.speed * adjustedRight * 1000);
 		}
 		if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
-			player.position += up * player.speed;
+			//player.position += up * player.speed;
+			btCollisionObject* obj = dynamicsWorld->getCollisionObjectArray()[0];
+			btRigidBody* body = btRigidBody::upcast(obj);
+			body->activate();
+			body->applyCentralForce(player.speed * Vec3ToBt(up) * 1000);
 		}
 		if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
-			player.position += up * -player.speed;
+			//player.position += up * -player.speed;
+			btCollisionObject* obj = dynamicsWorld->getCollisionObjectArray()[0];
+			btRigidBody* body = btRigidBody::upcast(obj);
+			body->activate();
+			body->applyCentralForce(-player.speed * Vec3ToBt(up) * 1000);
 		}
 		if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
-			timeScale = 1.0f;
-		}
-		if (glfwGetKey(window, GLFW_KEY_C) == GLFW_RELEASE) {
 			timeScale = 0.0f;
 		}
+		else
+			timeScale = 1.0f;
 
 #pragma endregion
 
@@ -501,16 +578,25 @@ int main(){
 
 		dynamicsWorld->stepSimulation(dt);
 
-		for (int i = 3; i >= 0; i--) {
+		for (int i = dynamicsWorld->getNumCollisionObjects() - 1; i >= 1; i--) { // reserve the first spot for the player
 			btCollisionObject* obj = dynamicsWorld->getCollisionObjectArray()[i];
 			btRigidBody* body = btRigidBody::upcast(obj);
 			if (body && body->getMotionState()) {
-				body->getMotionState()->getWorldTransform(meshes[i].transform);
+				body->getMotionState()->getWorldTransform(meshes[i-1].transform);
 			}
 			else {
-				meshes[i].transform = obj->getWorldTransform();
+				meshes[i-1].transform = obj->getWorldTransform();
 			}
-			printf("world pos object %d = %f,%f,%f\n", i, float(meshes[i].transform.getOrigin().getX()), float(meshes[i].transform.getOrigin().getY()), float(meshes[i].transform.getOrigin().getZ()));
+			//printf("world pos object %d = %f,%f,%f\n", i, float(meshes[i].transform.getOrigin().getX()), float(meshes[i].transform.getOrigin().getY()), float(meshes[i].transform.getOrigin().getZ()));
+		}
+
+		btCollisionObject* obj = dynamicsWorld->getCollisionObjectArray()[0];
+		btRigidBody* body = btRigidBody::upcast(obj);
+		if (body && body->getMotionState()) {
+			body->getMotionState()->getWorldTransform(player.transform);
+		}
+		else {
+			player.transform = obj->getWorldTransform();
 		}
 
 #pragma endregion
@@ -521,10 +607,16 @@ int main(){
 		glm::mat4 model = glm::mat4(1.0f);
 
 		glm::mat4 view = glm::lookAt(
-			player.position,
-			player.position + front,
+			BtToVec3(player.transform.getOrigin()),
+			BtToVec3(player.transform.getOrigin()) + front,
 			up
 		);
+
+		//glm::mat4 view = glm::lookAt(
+		//	player.position,
+		//	player.position + front,
+		//	up
+		//);
 
 		glm::mat4 proj = glm::perspective(glm::radians(player.fov), (float)windowX / (float)windowY, player.cam_near_clipping_plane, player.cam_far_clipping_plane);
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Transform.hpp"
 #include "LinearMath/btTransform.h"
 
 struct Mesh {
