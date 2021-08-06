@@ -1,5 +1,7 @@
 #include "headers/Main.hpp"
 
+constexpr auto VERTEX_SIZE = 8;
+
 static void GLClearError() {
 
 	while (glGetError());
@@ -93,6 +95,67 @@ static glm::vec3 BtToVec3(const btVector3 v) {
 	return glm::vec3(v.getX(), v.getY(), v.getZ());
 }
 
+static void CreateObject(btVector3 origin, btScalar mass,
+	btCollisionShape* shape, btAlignedObjectArray<btCollisionShape*>& collisionShapes,
+	btDiscreteDynamicsWorld* world) {
+	
+	collisionShapes.push_back(shape);
+
+	btTransform transform;
+	transform.setIdentity();
+	transform.setOrigin(origin);
+
+	//rigidbody is dynamic if and only if mass is non zero, otherwise static
+	bool isDynamic = (mass != 0.f);
+
+	btVector3 localInertia(0, 0, 0);
+	if (isDynamic)
+		shape->calculateLocalInertia(mass, localInertia);
+
+	//using motionstate is optional, it provides interpolation capabilities, and only synchronizes 'active' objects
+	btDefaultMotionState* myMotionState = new btDefaultMotionState(transform);
+	btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, shape, localInertia);
+	btRigidBody* body = new btRigidBody(rbInfo);
+
+	//add the body to the dynamics world
+	world->addRigidBody(body);
+}
+
+static Mesh CreateMesh(const char* name, int texID, int meshIndex, std::vector<Mesh>& meshes) {
+	Mesh newMesh;
+	newMesh.name = name;
+	newMesh.textureID = texID;
+	newMesh.meshIndex = meshIndex;
+	newMesh.bufferIndex = meshes.size();
+	return newMesh;
+}
+
+static btTriangleMesh* GenerateTriangleCollisionMesh(std::vector<std::vector<unsigned short>> EBOs, std::vector<std::vector<float>> VBOs, Mesh source) {
+	// wtf? this was a massive headache
+	btTriangleMesh* triMesh = new btTriangleMesh();
+	for (int i = 0; i < EBOs[source.bufferIndex].size();) {
+		int bufferIndex = source.bufferIndex;
+		btVector3 v1 = btVector3(
+			VBOs[bufferIndex][EBOs[bufferIndex][i] * VERTEX_SIZE],
+			VBOs[bufferIndex][EBOs[bufferIndex][i] * VERTEX_SIZE + 1],
+			VBOs[bufferIndex][EBOs[bufferIndex][i] * VERTEX_SIZE + 2]);
+		i++;
+		btVector3 v2 = btVector3(
+			VBOs[bufferIndex][EBOs[bufferIndex][i] * VERTEX_SIZE],
+			VBOs[bufferIndex][EBOs[bufferIndex][i] * VERTEX_SIZE + 1],
+			VBOs[bufferIndex][EBOs[bufferIndex][i] * VERTEX_SIZE + 2]);
+		i++;
+		btVector3 v3 = btVector3(
+			VBOs[bufferIndex][EBOs[bufferIndex][i] * VERTEX_SIZE],
+			VBOs[bufferIndex][EBOs[bufferIndex][i] * VERTEX_SIZE + 1],
+			VBOs[bufferIndex][EBOs[bufferIndex][i] * VERTEX_SIZE + 2]);
+		i++;
+
+		triMesh->addTriangle(v1, v2, v3, true);
+	}
+	return triMesh;
+}
+
 int main(){
 	GLFWwindow* window;
 
@@ -142,184 +205,65 @@ int main(){
 
 #pragma region Declare meshes and textures
 
-	const GLuint meshCount = 4;
 	std::vector<Mesh> meshes;
 	const char* meshFilePaths[]{
 		"models/smooth_suzanne.obj",
 		"models/cylinder.obj",
 		"models/icosphere.obj",
-		"models/plane.obj"
+		"models/plane.obj",
+		"models/cube_rod.obj",
+		"models/farm_area.obj",
+		"models/farm_house.obj",
+		"models/farm_house_roof.obj"
 	};
 
-#pragma region Set Default Object States and Collision objects
+	const enum meshTypes {
+		SMOOTH_SUZANNE,
+		CYLINDER,
+		ICOSPHERE,
+		PLANE,
+		CUBE_ROD,
+		FARM_AREA,
+		FARM_HOUSE,
+		FARM_ROOF
+	};
 
-	//collision shapes
-	btAlignedObjectArray<btCollisionShape*> collisionShapes;
+#pragma region Create Mesh Objects
 
-	//Player
-	{
-		//btCollisionShape* colShape = new btBoxShape(btVector3(1,1,1));
-		btCollisionShape* colShape = new btCapsuleShape(btScalar(1.0), btScalar(2.0));
-		collisionShapes.push_back(colShape);
-	
-		/// Create Dynamic Objects
-		btTransform startTransform;
-		startTransform.setIdentity();
-	
-		btScalar mass(1.f);
-	
-		//rigidbody is dynamic if and only if mass is non zero, otherwise static
-		bool isDynamic = (mass != 0.f);
-	
-		btVector3 localInertia(0, 0, 0);
-		if (isDynamic)
-			colShape->calculateLocalInertia(mass, localInertia);
-	
-		startTransform.setOrigin(btVector3(0, 3, 0));
-	
-		//using motionstate is recommended, it provides interpolation capabilities, and only synchronizes 'active' objects
-		btDefaultMotionState* myMotionState = new btDefaultMotionState(startTransform);
-		btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, colShape, localInertia);
-		btRigidBody* body = new btRigidBody(rbInfo);
-		body->setAngularFactor(btScalar(0));
-		body->setFriction(btScalar(3.0f));
-	
-		dynamicsWorld->addRigidBody(body);
-	}
+	unsigned int counter = 0;
 
 	//smooth suzanne
-	Mesh suzanne;
-	suzanne.name = "suzanne";
-	suzanne.textureID = 0;
+	Mesh suzanne = CreateMesh("suzanne", 0, SMOOTH_SUZANNE, meshes);
 	meshes.push_back(suzanne);
-	{ // dynamic member
-
-		//btCollisionShape* colShape = new btBoxShape(btVector3(1,1,1));
-		btCollisionShape* colShape = new btSphereShape(btScalar(1.));
-		collisionShapes.push_back(colShape);
-
-		/// Create Dynamic Objects
-		btTransform startTransform;
-		startTransform.setIdentity();
-
-		btScalar mass(1.f);
-
-		//rigidbody is dynamic if and only if mass is non zero, otherwise static
-		bool isDynamic = (mass != 0.f);
-
-		btVector3 localInertia(0, 0, 0);
-		if (isDynamic)
-			colShape->calculateLocalInertia(mass, localInertia);
-
-		startTransform.setOrigin(btVector3(-3, 3, 0));
-
-		//using motionstate is recommended, it provides interpolation capabilities, and only synchronizes 'active' objects
-		btDefaultMotionState* myMotionState = new btDefaultMotionState(startTransform);
-		btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, colShape, localInertia);
-		btRigidBody* body = new btRigidBody(rbInfo);
-		body->setFriction(btScalar(.1f));
-
-		dynamicsWorld->addRigidBody(body);
-	}
-
+	
 	//cylinder
-	Mesh cylinder;
-	cylinder.name = "cylinder";
-	cylinder.textureID = 0;
+	Mesh cylinder = CreateMesh("cylinder", 0, CYLINDER, meshes);
 	meshes.push_back(cylinder);
-	{ // dynamic member
-		
-		//btCollisionShape* colShape = new btBoxShape(btVector3(1,1,1));
-		btCollisionShape* colShape = new btSphereShape(btScalar(1.));
-		collisionShapes.push_back(colShape);
-
-		/// Create Dynamic Objects
-		btTransform startTransform;
-		startTransform.setIdentity();
-
-		btScalar mass(1.f);
-
-		//rigidbody is dynamic if and only if mass is non zero, otherwise static
-		bool isDynamic = (mass != 0.f);
-
-		btVector3 localInertia(0, 0, 0);
-		if (isDynamic)
-			colShape->calculateLocalInertia(mass, localInertia);
-
-		startTransform.setOrigin(btVector3(1, 5, 0));
-
-		//using motionstate is recommended, it provides interpolation capabilities, and only synchronizes 'active' objects
-		btDefaultMotionState* myMotionState = new btDefaultMotionState(startTransform);
-		btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, colShape, localInertia);
-		btRigidBody* body = new btRigidBody(rbInfo);
-
-		dynamicsWorld->addRigidBody(body);
-	}
-
+	
 	//icosphere
-	Mesh icosphere;
-	icosphere.name = "icosphere";
-	icosphere.textureID = 0;
+	Mesh icosphere = CreateMesh("icosphere", 0, ICOSPHERE, meshes);
 	meshes.push_back(icosphere);
-	{ // dynamic member
-
-		//btCollisionShape* colShape = new btBoxShape(btVector3(1,1,1));
-		btCollisionShape* colShape = new btSphereShape(btScalar(1.));
-		collisionShapes.push_back(colShape);
-
-		/// Create Dynamic Objects
-		btTransform startTransform;
-		startTransform.setIdentity();
-
-		btScalar mass(1.f);
-
-		//rigidbody is dynamic if and only if mass is non zero, otherwise static
-		bool isDynamic = (mass != 0.f);
-
-		btVector3 localInertia(-1, 0, 0);
-		if (isDynamic)
-			colShape->calculateLocalInertia(mass, localInertia);
-
-		startTransform.setOrigin(btVector3(-2, 7, 0));
-
-		//using motionstate is recommended, it provides interpolation capabilities, and only synchronizes 'active' objects
-		btDefaultMotionState* myMotionState = new btDefaultMotionState(startTransform);
-		btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, colShape, localInertia);
-		btRigidBody* body = new btRigidBody(rbInfo);
-
-		dynamicsWorld->addRigidBody(body);
-	}
 
 	//plane
-	Mesh plane;
-	plane.name = "plane";
-	plane.textureID = 0;
+	Mesh plane = CreateMesh("plane", 0, PLANE, meshes);
 	meshes.push_back(plane);
-	{ // static member
-		btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(10.), btScalar(0.05), btScalar(10.)));
 
-		collisionShapes.push_back(groundShape);
+	//farm area
+	Mesh farm_area = CreateMesh("farm_area", 0, FARM_AREA, meshes);
+	meshes.push_back(farm_area);
 
-		btTransform groundTransform;
-		groundTransform.setIdentity();
-		groundTransform.setOrigin(btVector3(0, 0, 0));
+	// farm house
+	Mesh farm_house = CreateMesh("farm_house", 0, FARM_HOUSE, meshes);
+	meshes.push_back(farm_house);
 
-		btScalar mass(0.);
+	// farm house roof
+	Mesh farm_house_roof = CreateMesh("farm_house_roof", 1, FARM_ROOF, meshes);
+	meshes.push_back(farm_house_roof);
 
-		//rigidbody is dynamic if and only if mass is non zero, otherwise static
-		bool isDynamic = (mass != 0.f);
-
-		btVector3 localInertia(0, 0, 0);
-		if (isDynamic)
-			groundShape->calculateLocalInertia(mass, localInertia);
-
-		//using motionstate is optional, it provides interpolation capabilities, and only synchronizes 'active' objects
-		btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
-		btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, groundShape, localInertia);
-		btRigidBody* body = new btRigidBody(rbInfo);
-
-		//add the body to the dynamics world
-		dynamicsWorld->addRigidBody(body);
+	//create cube rod stairs
+	for (int i = 0; i < 10; i++) {
+		Mesh cube_rod = CreateMesh("cube rod", 1, CUBE_ROD, meshes);
+		meshes.push_back(cube_rod);
 	}
 	
 #pragma endregion
@@ -335,16 +279,16 @@ int main(){
 
 #pragma region Load model files and create buffer objects
 
-	const GLuint vertex_size = 8;
-
 	std::vector<GLfloat> raw_vertex_data;
-	std::vector<GLfloat> VBOs[meshCount];
-	std::vector<unsigned short> EBOs[meshCount];
+	std::vector<std::vector<GLfloat>> VBOs;
+	std::vector<std::vector<unsigned short>> EBOs;
 
-	for (int i = 0; i < meshCount; i++) {
+	for (int i = 0; i < meshes.size(); i++) {
 		//load models into raw vertex data vector
-		loadOBJ(meshFilePaths[i], raw_vertex_data);
-		indexVBO(raw_vertex_data, EBOs[i], VBOs[i], vertex_size);
+		VBOs.push_back(std::vector<GLfloat>());
+		EBOs.push_back(std::vector<unsigned short>());
+		loadOBJ(meshFilePaths[meshes[i].meshIndex], raw_vertex_data);
+		indexVBO(raw_vertex_data, EBOs[i], VBOs[i], VERTEX_SIZE);
 		raw_vertex_data.clear();
 	}
 
@@ -361,16 +305,97 @@ int main(){
 	GLCALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo));
 
 	GLint posAttrib = glGetAttribLocation(shaderProgram, "vertexposition_local");
-	GLCALL(glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, vertex_size * sizeof(GLfloat), (void*)0));
+	GLCALL(glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, VERTEX_SIZE * sizeof(GLfloat), (void*)0));
 	GLCALL(glEnableVertexAttribArray(posAttrib));
 
 	GLint uvAttrib = glGetAttribLocation(shaderProgram, "uv");
-	GLCALL(glVertexAttribPointer(uvAttrib, 2, GL_FLOAT, GL_FALSE, vertex_size * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat))));
+	GLCALL(glVertexAttribPointer(uvAttrib, 2, GL_FLOAT, GL_FALSE, VERTEX_SIZE * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat))));
 	GLCALL(glEnableVertexAttribArray(uvAttrib));
 
 	GLint normalAttrib = glGetAttribLocation(shaderProgram, "normal");
-	GLCALL(glVertexAttribPointer(normalAttrib, 3, GL_FLOAT, GL_FALSE, vertex_size * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat))));
+	GLCALL(glVertexAttribPointer(normalAttrib, 3, GL_FLOAT, GL_FALSE, VERTEX_SIZE * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat))));
 	GLCALL(glEnableVertexAttribArray(normalAttrib));
+
+#pragma endregion
+
+#pragma region Collision Bodies
+
+	//collision shapes
+	btAlignedObjectArray<btCollisionShape*> collisionShapes;
+	btCollisionShape* sphereShape = new btSphereShape(btScalar(1.));
+	btCollisionShape* cylinderShape = new btCylinderShape(btVector3(1, 1, 1));
+	btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(10.), btScalar(0.05), btScalar(10.)));
+	btCollisionShape* cubeRodShape = new btBoxShape(btVector3(btScalar(1.), btScalar(0.2), btScalar(0.2)));
+
+	btBvhTriangleMeshShape* farm_areaShape = new btBvhTriangleMeshShape(GenerateTriangleCollisionMesh(EBOs, VBOs, farm_area), true);
+	btBvhTriangleMeshShape* farm_houseShape = new btBvhTriangleMeshShape(GenerateTriangleCollisionMesh(EBOs, VBOs, farm_house), true);
+
+	//Player
+	{
+		//btCollisionShape* colShape = new btBoxShape(btVector3(1,1,1));
+		btCollisionShape* colShape = new btCapsuleShape(btScalar(1.0), btScalar(2.0));
+		collisionShapes.push_back(colShape);
+
+		/// Create Dynamic Objects
+		btTransform startTransform;
+		startTransform.setIdentity();
+
+		btScalar mass(1.f);
+
+		//rigidbody is dynamic if and only if mass is non zero, otherwise static
+		bool isDynamic = (mass != 0.f);
+
+		btVector3 localInertia(0, 0, 0);
+		if (isDynamic)
+			colShape->calculateLocalInertia(mass, localInertia);
+
+		startTransform.setOrigin(btVector3(0, 3, 0));
+
+		//using motionstate is recommended, it provides interpolation capabilities, and only synchronizes 'active' objects
+		btDefaultMotionState* myMotionState = new btDefaultMotionState(startTransform);
+		btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, colShape, localInertia);
+		btRigidBody* body = new btRigidBody(rbInfo);
+		body->setAngularFactor(btScalar(0));
+		body->setFriction(btScalar(0));
+
+		dynamicsWorld->addRigidBody(body);
+	}
+
+	//smooth suzanne
+	CreateObject(btVector3(-3, 3, 0), 1.0f,
+		sphereShape, collisionShapes, dynamicsWorld);
+
+	//cylinder
+	CreateObject(btVector3(1, 5, 0), 1.0f,
+		cylinderShape, collisionShapes, dynamicsWorld);
+
+	//icosphere
+	CreateObject(btVector3(-2, 7, 0), 1.0f,
+		sphereShape, collisionShapes, dynamicsWorld);
+
+		//Static members
+
+	//plane
+	CreateObject(btVector3(0, 0, 0), 0.0f,
+		groundShape, collisionShapes, dynamicsWorld);
+
+	// farm area
+	CreateObject(btVector3(60, -1, 0), 0.0f,
+		farm_areaShape, collisionShapes, dynamicsWorld);
+
+	// farm house
+	CreateObject(btVector3(72, 0, -5), 0.0f,
+		farm_houseShape, collisionShapes, dynamicsWorld);
+
+	// farm house roof
+	CreateObject(btVector3(79, 18.317, 0), 0.0f,
+		groundShape, collisionShapes, dynamicsWorld);
+
+	//create cube rod stairs
+	for (int i = 0; i < 10; i++) {
+		CreateObject(btVector3(-9 + (float)i * 2, 0.5 + (float)i / 2, 9.8), 0.0f,
+			cubeRodShape, collisionShapes, dynamicsWorld);
+	}
 
 #pragma endregion
 
@@ -428,11 +453,14 @@ int main(){
 	player.cam_angle_horizontal = 3.14f;
 	player.cam_angle_vertical = 0.0f;
 	player.cam_near_clipping_plane = 0.1f;
-	player.cam_far_clipping_plane = 50.0f;
+	player.cam_far_clipping_plane = 500.0f;
+	player.cam_offset = glm::vec3(0, 1.5f, 0);
 	player.fov = 70.0f;
 
 	player.speed = 10.0f / 500.0f;
 	player.mouseSpeed = 2.5f / 500.0f;
+
+	player.grounded = false;
 
 #pragma endregion
 
@@ -547,14 +575,16 @@ int main(){
 			btCollisionObject* obj = dynamicsWorld->getCollisionObjectArray()[0];
 			btRigidBody* body = btRigidBody::upcast(obj);
 			body->activate();
-			body->applyCentralForce(player.speed * Vec3ToBt(up) * 1000);
+			btVector3 adjustedUp = Vec3ToBt(glm::normalize(glm::vec3(0, up.y, 0)));
+			body->applyCentralForce(player.speed * adjustedUp * 1000);
 		}
 		if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
 			//player.position += up * -player.speed;
 			btCollisionObject* obj = dynamicsWorld->getCollisionObjectArray()[0];
 			btRigidBody* body = btRigidBody::upcast(obj);
 			body->activate();
-			body->applyCentralForce(-player.speed * Vec3ToBt(up) * 1000);
+			btVector3 adjustedUp = Vec3ToBt(glm::normalize(glm::vec3(0, up.y, 0)));
+			body->applyCentralForce(-player.speed * adjustedUp * 1000);
 		}
 		if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
 			timeScale = 0.0f;
@@ -582,21 +612,48 @@ int main(){
 			btCollisionObject* obj = dynamicsWorld->getCollisionObjectArray()[i];
 			btRigidBody* body = btRigidBody::upcast(obj);
 			if (body && body->getMotionState()) {
-				body->getMotionState()->getWorldTransform(meshes[i-1].transform);
+				body->getMotionState()->getWorldTransform(meshes[i - 1].transform);
 			}
 			else {
-				meshes[i-1].transform = obj->getWorldTransform();
+				meshes[i - 1].transform = obj->getWorldTransform();
 			}
 			//printf("world pos object %d = %f,%f,%f\n", i, float(meshes[i].transform.getOrigin().getX()), float(meshes[i].transform.getOrigin().getY()), float(meshes[i].transform.getOrigin().getZ()));
 		}
 
-		btCollisionObject* obj = dynamicsWorld->getCollisionObjectArray()[0];
-		btRigidBody* body = btRigidBody::upcast(obj);
-		if (body && body->getMotionState()) {
-			body->getMotionState()->getWorldTransform(player.transform);
-		}
-		else {
-			player.transform = obj->getWorldTransform();
+		{
+			btCollisionObject* obj = dynamicsWorld->getCollisionObjectArray()[0];
+			btRigidBody* body = btRigidBody::upcast(obj);
+			if (body && body->getMotionState()) {
+				body->getMotionState()->getWorldTransform(player.transform);
+			}
+			else {
+				player.transform = obj->getWorldTransform();
+			}
+			
+			btVector3 rayStart = player.transform.getOrigin();
+			btVector3 rayEnd = player.transform.getOrigin() + btVector3(0, -2, 0);
+			btCollisionWorld::ClosestRayResultCallback rayCallback(rayStart, rayEnd);
+			dynamicsWorld->rayTest(rayStart, rayEnd, rayCallback);
+
+			if (rayCallback.hasHit())
+				player.grounded = true;
+			else
+				player.grounded = false;
+			//printf("%i\n", player.grounded);
+			if (player.grounded) {
+				body->setLinearVelocity(btVector3(body->getLinearVelocity().getX() * 0.995,
+					body->getLinearVelocity().getY(),
+					body->getLinearVelocity().getZ() * 0.995));
+			}
+			else
+				body->setLinearVelocity(btVector3(body->getLinearVelocity().getX() * 0.998,
+					body->getLinearVelocity().getY(),
+					body->getLinearVelocity().getZ() * 0.998));
+
+			//printf("world pos object = %f,%f,%f\n", float(player.transform.getOrigin().getX()), float(player.transform.getOrigin().getY()), float(player.transform.getOrigin().getZ()));
+			//std::cout << "start: " << rayStart.getX() << " " << rayStart.getY() << " " << rayStart.getZ() << std::endl;
+			//std::cout << "end: " << rayEnd.getX() << " " << rayEnd.getY() << " " << rayEnd.getZ() << std::endl;
+			//std::cout << rayCallback.hasHit() << std::endl;
 		}
 
 #pragma endregion
@@ -607,16 +664,10 @@ int main(){
 		glm::mat4 model = glm::mat4(1.0f);
 
 		glm::mat4 view = glm::lookAt(
-			BtToVec3(player.transform.getOrigin()),
-			BtToVec3(player.transform.getOrigin()) + front,
-			up
+			BtToVec3(player.transform.getOrigin()) + player.cam_offset,
+			BtToVec3(player.transform.getOrigin()) + front + player.cam_offset,
+			up + player.cam_offset
 		);
-
-		//glm::mat4 view = glm::lookAt(
-		//	player.position,
-		//	player.position + front,
-		//	up
-		//);
 
 		glm::mat4 proj = glm::perspective(glm::radians(player.fov), (float)windowX / (float)windowY, player.cam_near_clipping_plane, player.cam_far_clipping_plane);
 
@@ -625,7 +676,7 @@ int main(){
 
 #pragma endregion
 
-		for (int i = 0; i < meshCount; i++) {
+		for (int i = 0; i < meshes.size(); i++) {
 
 			glm::mat4 specificModel = model;
 
