@@ -29,15 +29,15 @@ void main()
 
     //worldspace position
     VertexPosition_Worldspace = (model * vec4(vertexposition_local, 1)).xyz;
-    
+
     //vector from vertex to camera
     vec3 vertexPosition_cameraspace = (view * model * vec4(vertexposition_local, 1)).xyz;
     EyeDirection_cameraspace = vec3(0, 0, 0) - vertexPosition_cameraspace;
-    
+
     //vector from vertex to light
     vec3 lightposition_cameraspace = (view * vec4(lightposition_worldspace, 1)).xyz;
     LightDirection_Cameraspace = lightposition_cameraspace + EyeDirection_cameraspace;
-    
+
     //normal of vertex
     Normal_Cameraspace = (view * model * vec4(normal, 0)).xyz;
 }

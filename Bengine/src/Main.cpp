@@ -203,13 +203,17 @@ int main(){
 
 #pragma endregion
 
-#pragma region Declare meshes and textures
+#pragma region Declare meshes
 
 	std::vector<Mesh> meshes;
 	const char* meshFilePaths[]{
 		"models/smooth_suzanne.obj",
 		"models/cylinder.obj",
 		"models/icosphere.obj",
+		"models/player_head.obj",
+		"models/player_arm.obj",
+		"models/player_hand.obj",
+		"models/player_joint.obj",
 		"models/plane.obj",
 		"models/cube_rod.obj",
 		"models/farm_area.obj",
@@ -221,6 +225,10 @@ int main(){
 		SMOOTH_SUZANNE,
 		CYLINDER,
 		ICOSPHERE,
+		PLAYER_HEAD,
+		PLAYER_ARM,
+		PLAYER_HAND,
+		PLAYER_JOINT,
 		PLANE,
 		CUBE_ROD,
 		FARM_AREA,
@@ -244,6 +252,30 @@ int main(){
 	Mesh icosphere = CreateMesh("icosphere", 0, ICOSPHERE, meshes);
 	meshes.push_back(icosphere);
 
+	//player head
+	Mesh head = CreateMesh("player_head", 0, PLAYER_HEAD, meshes);
+	meshes.push_back(head);
+
+	//player arm
+	for (int i = 0; i < 4; i++) {
+		Mesh arm = CreateMesh("player_arm" + i, 0, PLAYER_ARM, meshes);
+		meshes.push_back(arm);
+	}
+
+	//player hand
+	Mesh hand0 = CreateMesh("player_hand0", 1, PLAYER_HAND, meshes);
+	meshes.push_back(hand0);
+	Mesh hand1 = CreateMesh("player_hand1", 1, PLAYER_HAND, meshes);
+	meshes.push_back(hand1);
+
+	//player joint
+	for (int i = 0; i < 4; i++) {
+		Mesh joint = CreateMesh("player_joint" + i, 0, PLAYER_JOINT, meshes);
+		meshes.push_back(joint);
+	}
+
+		//Static members
+
 	//plane
 	Mesh plane = CreateMesh("plane", 0, PLANE, meshes);
 	meshes.push_back(plane);
@@ -257,7 +289,7 @@ int main(){
 	meshes.push_back(farm_house);
 
 	// farm house roof
-	Mesh farm_house_roof = CreateMesh("farm_house_roof", 1, FARM_ROOF, meshes);
+	Mesh farm_house_roof = CreateMesh("farm_house_roof", 0, FARM_ROOF, meshes);
 	meshes.push_back(farm_house_roof);
 
 	//create cube rod stairs
@@ -265,17 +297,6 @@ int main(){
 		Mesh cube_rod = CreateMesh("cube rod", 1, CUBE_ROD, meshes);
 		meshes.push_back(cube_rod);
 	}
-	
-#pragma endregion
-
-	const GLuint textureCount = 2;
-	GLuint textures[textureCount];
-	const char* textureFilePaths[textureCount]{
-		"textures/checker.png",
-		"textures/white.png"
-	};
-
-#pragma endregion
 
 #pragma region Load model files and create buffer objects
 
@@ -323,7 +344,9 @@ int main(){
 	//collision shapes
 	btAlignedObjectArray<btCollisionShape*> collisionShapes;
 	btCollisionShape* sphereShape = new btSphereShape(btScalar(1.));
+	btCollisionShape* playerJointShape = new btSphereShape(btScalar(0.215));
 	btCollisionShape* cylinderShape = new btCylinderShape(btVector3(1, 1, 1));
+	btCollisionShape* playerArmShape = new btCylinderShape(btVector3(0.2, 0.6, 0.2));
 	btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(10.), btScalar(0.05), btScalar(10.)));
 	btCollisionShape* cubeRodShape = new btBoxShape(btVector3(btScalar(1.), btScalar(0.2), btScalar(0.2)));
 
@@ -373,6 +396,28 @@ int main(){
 	CreateObject(btVector3(-2, 7, 0), 1.0f,
 		sphereShape, collisionShapes, dynamicsWorld);
 
+	//player head
+	CreateObject(btVector3(-4, 7, 0), 1.0f,
+		sphereShape, collisionShapes, dynamicsWorld);
+
+	//player arms
+	for (int i = 0; i < 4; i++) {
+		CreateObject(btVector3(-6, 7, 0), 1.0f,
+			playerArmShape, collisionShapes, dynamicsWorld);
+	}
+
+	//player hands
+	for (int i = 0; i < 2; i++) {
+		CreateObject(btVector3(-8, 7, 0), 1.0f,
+			playerArmShape, collisionShapes, dynamicsWorld);
+	}
+
+	//player joints
+	for (int i = 0; i < 4; i++) {
+		CreateObject(btVector3(-6, 7, 2), 1.0f,
+			playerJointShape, collisionShapes, dynamicsWorld);
+	}
+
 		//Static members
 
 	//plane
@@ -401,26 +446,33 @@ int main(){
 
 #pragma region Load Textures
 
+	const GLuint textureCount = 2;
+	GLuint textures[textureCount];
+	const char* textureFilePaths[textureCount] {
+		"textures/checker.png",
+		"textures/white.png"
+	};
+
 	unsigned char* images[textureCount];
 	int widths[textureCount], heights[textureCount];
 	
 	GLCALL(glGenTextures(textureCount, textures));
 	
 	for (int i = 0; i < textureCount; i++) {
-
+	
 		GLCALL(glActiveTexture(GL_TEXTURE0 + i));
 		GLCALL(glBindTexture(GL_TEXTURE_2D, textures[i])); // BIND TEXTURE
-
+	
 		images[i] = SOIL_load_image(textureFilePaths[i], &widths[i], &heights[i], 0, SOIL_LOAD_RGB); // LOAD IMAGE
 		GLCALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, widths[i], heights[i], 0, GL_RGB,
 			GL_UNSIGNED_BYTE, images[i]));
 		SOIL_free_image_data(images[i]);
-
+	
 		GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)); // IMAGE PARAMETERS
 		GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));
 		GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
 		GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
-
+	
 		GLCALL(glGenerateMipmap(GL_TEXTURE_2D));
 	}
 	
@@ -673,6 +725,12 @@ int main(){
 
 		GLCALL(glUniformMatrix4fv(uniProj, 1, GL_FALSE, glm::value_ptr(proj)));
 		GLCALL(glUniformMatrix4fv(uniView, 1, GL_FALSE, glm::value_ptr(view)));
+
+#pragma endregion
+
+#pragma region Player
+
+		player.position = BtToVec3(player.transform.getOrigin());
 
 #pragma endregion
 

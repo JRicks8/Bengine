@@ -25,18 +25,18 @@ void main() {
 	vec3 E = normalize(EyeDirection_cameraspace);
 	//triangle light reflection
 	vec3 R = reflect(-l, n);
-	
+
 	vec4 materialdiffuse = texture(tex, UV);
 	vec3 materialambient = vec3(0.5, 0.5, 0.5) * materialdiffuse.xyz;
 	vec3 materialspecular = lightcolor;
 	float distance = length(lightposition_worldspace - VertexPosition_Worldspace);
-	
+
 	float cosAlpha = clamp(dot(E, R), 0, 1);
-	
+
 	float cosTheta = clamp(dot(n, l), 0, 1); //take the dot product between incoming light and vertex normal, then clamp it to 0-1 in case the light is behind (resulting in neg value)
 	vec3 color = materialdiffuse.xyz * lightcolor * lightpower * cosTheta / (distance * distance)
 		+ materialspecular * lightcolor * lightpower * pow(cosAlpha, 5) / (distance * distance)
 		+ materialambient;
-	
+
 	outColor = vec4(color, materialdiffuse.a);
 };

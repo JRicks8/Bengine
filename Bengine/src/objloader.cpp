@@ -4,7 +4,7 @@
 #include <iostream>
 
 bool loadOBJ(const char* path, std::vector<float>& out_vertices) {
-	
+
 	std::vector<glm::vec3> out_positions;
 	std::vector<glm::vec2> out_uvs;
 	std::vector<glm::vec3> out_normals;
@@ -45,7 +45,7 @@ bool loadOBJ(const char* path, std::vector<float>& out_vertices) {
 		else if (strcmp(lineHeader, "f") == 0) {
 			std::string pos1, pos2, pos3;
 			unsigned int positionIndex[3], uvIndex[3], normalIndex[3];
-			int matches = fscanf_s(file, "%d/%d/%d %d/%d/%d %d/%d/%d\n", 
+			int matches = fscanf_s(file, "%d/%d/%d %d/%d/%d %d/%d/%d\n",
 				&positionIndex[0], &uvIndex[0], &normalIndex[0],
 				&positionIndex[1], &uvIndex[1], &normalIndex[1],
 				&positionIndex[2], &uvIndex[2], &normalIndex[2]);
