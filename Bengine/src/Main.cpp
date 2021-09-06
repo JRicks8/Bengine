@@ -97,7 +97,7 @@ static glm::vec3 BtToVec3(const btVector3 v) {
 
 static void CreateObject(btVector3 origin, btScalar mass,
 	btCollisionShape* shape, btAlignedObjectArray<btCollisionShape*>& collisionShapes,
-	btDiscreteDynamicsWorld* world) {
+	btDiscreteDynamicsWorld* world, Mesh* mesh) {
 	
 	collisionShapes.push_back(shape);
 
@@ -121,18 +121,19 @@ static void CreateObject(btVector3 origin, btScalar mass,
 	world->addRigidBody(body);
 }
 
-static Mesh CreateMesh(const char* name, int texID, int meshIndex, std::vector<Mesh>& meshes) {
-	Mesh newMesh;
-	newMesh.name = name;
-	newMesh.textureID = texID;
-	newMesh.meshIndex = meshIndex;
-	newMesh.bufferIndex = meshes.size();
+static Mesh* CreateMesh(const char* name, int texID, int meshIndex, std::vector<Mesh*>& meshes) {
+	Mesh* newMesh = new Mesh();
+	newMesh->name = name;
+	newMesh->textureID = texID;
+	newMesh->meshIndex = meshIndex;
+	newMesh->bufferIndex = meshes.size();
 	return newMesh;
 }
 
 static btTriangleMesh* GenerateTriangleCollisionMesh(std::vector<std::vector<unsigned short>> EBOs, std::vector<std::vector<float>> VBOs, Mesh source) {
 	// wtf? this was a massive headache
 	btTriangleMesh* triMesh = new btTriangleMesh();
+	std::cout << source.bufferIndex << std::endl;
 	for (int i = 0; i < EBOs[source.bufferIndex].size();) {
 		int bufferIndex = source.bufferIndex;
 		btVector3 v1 = btVector3(
@@ -205,7 +206,7 @@ int main(){
 
 #pragma region Declare meshes
 
-	std::vector<Mesh> meshes;
+	std::vector<Mesh*> meshes;
 	const char* meshFilePaths[]{
 		"models/smooth_suzanne.obj",
 		"models/cylinder.obj",
@@ -242,64 +243,67 @@ int main(){
 
 	//smooth suzanne
 	meshes.push_back(CreateMesh("suzanne", 0, SMOOTH_SUZANNE, meshes));
-	Mesh* suzanne = &meshes[meshes.size() - 1];
+	Mesh* suzanne = meshes[meshes.size() - 1];
 	
 	//cylinder
 	meshes.push_back(CreateMesh("cylinder", 0, CYLINDER, meshes));
-	Mesh* cylinder = &meshes[meshes.size() - 1];
+	Mesh* cylinder = meshes[meshes.size() - 1];
 	
 	//icosphere
 	meshes.push_back(CreateMesh("icosphere", 0, ICOSPHERE, meshes));
-	Mesh* icosphere = &meshes[meshes.size() - 1];
+	Mesh* icosphere = meshes[meshes.size() - 1];
 
 	//player head
 	meshes.push_back(CreateMesh("player_head", 0, PLAYER_HEAD, meshes));
-	Mesh* head = &meshes[meshes.size() - 1];
+	Mesh* player_head = meshes[meshes.size() - 1];
 
 	//player arms
-	meshes.push_back(CreateMesh("player_arm0", 0, PLAYER_ARM, meshes));
-	Mesh* player_arm0 = &meshes[meshes.size() - 1];
-	meshes.push_back(CreateMesh("player_arm1", 0, PLAYER_ARM, meshes));
-	Mesh* player_arm1 = &meshes[meshes.size() - 1];
-	meshes.push_back(CreateMesh("player_arm2", 0, PLAYER_ARM, meshes));
-	Mesh* player_arm2 = &meshes[meshes.size() - 1];
-	meshes.push_back(CreateMesh("player_arm3", 0, PLAYER_ARM, meshes));
-	Mesh* player_arm3 = &meshes[meshes.size() - 1];
+	meshes.push_back(CreateMesh("player_armRightUpper", 0, PLAYER_ARM, meshes));
+	Mesh* player_armRightUpper = meshes[meshes.size() - 1];
+	meshes.push_back(CreateMesh("player_armRightLower", 0, PLAYER_ARM, meshes));
+	Mesh* player_armRightLower = meshes[meshes.size() - 1];
+	meshes.push_back(CreateMesh("player_armLeftUpper", 0, PLAYER_ARM, meshes));
+	Mesh* player_armLeftUpper = meshes[meshes.size() - 1];
+	meshes.push_back(CreateMesh("player_armLeftLower", 0, PLAYER_ARM, meshes));
+	Mesh* player_armLeftLower = meshes[meshes.size() - 1];
 
 	//player hand
-	Mesh hand0 = CreateMesh("player_hand0", 1, PLAYER_HAND, meshes);
-	meshes.push_back(hand0);
-	Mesh hand1 = CreateMesh("player_hand1", 1, PLAYER_HAND, meshes);
-	meshes.push_back(hand1);
+	meshes.push_back(CreateMesh("player_handRight", 1, PLAYER_HAND, meshes));
+	Mesh* player_handRight = meshes[meshes.size() - 1];
+	meshes.push_back(CreateMesh("player_handLeft", 1, PLAYER_HAND, meshes));
+	Mesh* player_handLeft = meshes[meshes.size() - 1];
 
 	//player joint
-	for (int i = 0; i < 4; i++) {
-		Mesh joint = CreateMesh("player_joint" + i, 0, PLAYER_JOINT, meshes);
-		meshes.push_back(joint);
-	}
+	meshes.push_back(CreateMesh("player_jointRightElbow", 0, PLAYER_JOINT, meshes));
+	Mesh* player_jointRightElbow = meshes[meshes.size() - 1];
+	meshes.push_back(CreateMesh("player_jointRightWrist", 0, PLAYER_JOINT, meshes));
+	Mesh* player_jointRightWrist = meshes[meshes.size() - 1];
+	meshes.push_back(CreateMesh("player_jointLeftElbow", 0, PLAYER_JOINT, meshes));
+	Mesh* player_jointLeftElbow = meshes[meshes.size() - 1];
+	meshes.push_back(CreateMesh("player_jointLeftWrist", 0, PLAYER_JOINT, meshes));
+	Mesh* player_jointLeftWrist = meshes[meshes.size() - 1];
 
 		//Static members
 
 	//plane
-	Mesh plane = CreateMesh("plane", 0, PLANE, meshes);
-	meshes.push_back(plane);
+	meshes.push_back(CreateMesh("plane", 0, PLANE, meshes));
+	Mesh* plane = meshes[meshes.size() - 1];
 
 	//farm area
-	Mesh farm_area = CreateMesh("farm_area", 0, FARM_AREA, meshes);
-	meshes.push_back(farm_area);
+	meshes.push_back(CreateMesh("farm_area", 0, FARM_AREA, meshes));
+	Mesh* farm_area = meshes[meshes.size() - 1];
 
 	// farm house
-	Mesh farm_house = CreateMesh("farm_house", 0, FARM_HOUSE, meshes);
-	meshes.push_back(farm_house);
+	meshes.push_back(CreateMesh("farm_house", 0, FARM_HOUSE, meshes));
+	Mesh* farm_house = meshes[meshes.size() - 1];
 
 	// farm house roof
-	Mesh farm_house_roof = CreateMesh("farm_house_roof", 0, FARM_ROOF, meshes);
-	meshes.push_back(farm_house_roof);
+	meshes.push_back(CreateMesh("farm_houseRoof", 0, FARM_ROOF, meshes));
+	Mesh* farm_houseRoof = meshes[meshes.size() - 1];
 
 	//create cube rod stairs
 	for (int i = 0; i < 10; i++) {
-		Mesh cube_rod = CreateMesh("cube rod", 1, CUBE_ROD, meshes);
-		meshes.push_back(cube_rod);
+		meshes.push_back(CreateMesh("cube rod", 1, CUBE_ROD, meshes));
 	}
 
 #pragma region Load model files and create buffer objects
@@ -312,7 +316,7 @@ int main(){
 		//load models into raw vertex data vector
 		VBOs.push_back(std::vector<GLfloat>());
 		EBOs.push_back(std::vector<unsigned short>());
-		loadOBJ(meshFilePaths[meshes[i].meshIndex], raw_vertex_data);
+		loadOBJ(meshFilePaths[meshes[i]->meshIndex], raw_vertex_data);
 		indexVBO(raw_vertex_data, EBOs[i], VBOs[i], VERTEX_SIZE);
 		raw_vertex_data.clear();
 	}
@@ -354,8 +358,9 @@ int main(){
 	btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(10.), btScalar(0.05), btScalar(10.)));
 	btCollisionShape* cubeRodShape = new btBoxShape(btVector3(btScalar(1.), btScalar(0.2), btScalar(0.2)));
 
-	btBvhTriangleMeshShape* farm_areaShape = new btBvhTriangleMeshShape(GenerateTriangleCollisionMesh(EBOs, VBOs, farm_area), true);
-	btBvhTriangleMeshShape* farm_houseShape = new btBvhTriangleMeshShape(GenerateTriangleCollisionMesh(EBOs, VBOs, farm_house), true);
+	btBvhTriangleMeshShape* farm_areaShape = new btBvhTriangleMeshShape(GenerateTriangleCollisionMesh(EBOs, VBOs, *farm_area), true);
+	btBvhTriangleMeshShape* farm_houseShape = new btBvhTriangleMeshShape(GenerateTriangleCollisionMesh(EBOs, VBOs, *farm_house), true);
+	btBvhTriangleMeshShape* farm_houseRoofShape = new btBvhTriangleMeshShape(GenerateTriangleCollisionMesh(EBOs, VBOs, *farm_houseRoof), true);
 
 	//Player
 	{
@@ -390,60 +395,68 @@ int main(){
 
 	//smooth suzanne
 	CreateObject(btVector3(-3, 3, 0), 1.0f,
-		sphereShape, collisionShapes, dynamicsWorld);
+		sphereShape, collisionShapes, dynamicsWorld, suzanne);
 
 	//cylinder
 	CreateObject(btVector3(1, 5, 0), 1.0f,
-		cylinderShape, collisionShapes, dynamicsWorld);
+		cylinderShape, collisionShapes, dynamicsWorld, cylinder);
 
 	//icosphere
 	CreateObject(btVector3(-2, 7, 0), 1.0f,
-		sphereShape, collisionShapes, dynamicsWorld);
+		sphereShape, collisionShapes, dynamicsWorld, icosphere);
 
 	//player head
 	CreateObject(btVector3(-4, 7, 0), 1.0f,
-		sphereShape, collisionShapes, dynamicsWorld);
+		sphereShape, collisionShapes, dynamicsWorld, player_head);
 
 	//player arms
-	for (int i = 0; i < 4; i++) {
-		CreateObject(btVector3(-6, 7, 0), 1.0f,
-			playerArmShape, collisionShapes, dynamicsWorld);
-	}
+	CreateObject(btVector3(-6, 7, 0), 1.0f,
+		playerArmShape, collisionShapes, dynamicsWorld, player_armRightUpper);
+	CreateObject(btVector3(-6, 7, 0), 1.0f,
+		playerArmShape, collisionShapes, dynamicsWorld, player_armRightLower);
+	CreateObject(btVector3(-6, 7, 0), 1.0f,
+		playerArmShape, collisionShapes, dynamicsWorld, player_armLeftUpper);
+	CreateObject(btVector3(-6, 7, 0), 1.0f,
+		playerArmShape, collisionShapes, dynamicsWorld, player_armLeftLower);
 
 	//player hands
-	for (int i = 0; i < 2; i++) {
-		CreateObject(btVector3(-8, 7, 0), 1.0f,
-			playerArmShape, collisionShapes, dynamicsWorld);
-	}
+	CreateObject(btVector3(-8, 7, 0), 1.0f,
+		playerArmShape, collisionShapes, dynamicsWorld, player_handRight);
+	CreateObject(btVector3(-8, 7, 0), 1.0f,
+		playerArmShape, collisionShapes, dynamicsWorld, player_handLeft);
 
 	//player joints
-	for (int i = 0; i < 4; i++) {
-		CreateObject(btVector3(-6, 7, 2), 1.0f,
-			playerJointShape, collisionShapes, dynamicsWorld);
-	}
+	CreateObject(btVector3(-6, 7, 2), 1.0f,
+		playerJointShape, collisionShapes, dynamicsWorld, player_jointRightElbow);
+	CreateObject(btVector3(-6, 7, 2), 1.0f,
+		playerJointShape, collisionShapes, dynamicsWorld, player_jointRightWrist);
+	CreateObject(btVector3(-6, 7, 2), 1.0f,
+		playerJointShape, collisionShapes, dynamicsWorld, player_jointLeftElbow);
+	CreateObject(btVector3(-6, 7, 2), 1.0f,
+		playerJointShape, collisionShapes, dynamicsWorld, player_jointLeftWrist);
 
 		//Static members
 
 	//plane
 	CreateObject(btVector3(0, 0, 0), 0.0f,
-		groundShape, collisionShapes, dynamicsWorld);
+		groundShape, collisionShapes, dynamicsWorld, plane);
 
 	// farm area
 	CreateObject(btVector3(60, -1, 0), 0.0f,
-		farm_areaShape, collisionShapes, dynamicsWorld);
+		farm_areaShape, collisionShapes, dynamicsWorld, farm_area);
 
 	// farm house
 	CreateObject(btVector3(72, 0, -5), 0.0f,
-		farm_houseShape, collisionShapes, dynamicsWorld);
+		farm_houseShape, collisionShapes, dynamicsWorld, farm_house);
 
 	// farm house roof
 	CreateObject(btVector3(79, 18.317, 0), 0.0f,
-		groundShape, collisionShapes, dynamicsWorld);
+		farm_houseRoofShape, collisionShapes, dynamicsWorld, farm_houseRoof);
 
 	//create cube rod stairs
 	for (int i = 0; i < 10; i++) {
 		CreateObject(btVector3(-9 + (float)i * 2, 0.5 + (float)i / 2, 9.8), 0.0f,
-			cubeRodShape, collisionShapes, dynamicsWorld);
+			cubeRodShape, collisionShapes, dynamicsWorld, nullptr);
 	}
 
 #pragma endregion
@@ -668,10 +681,10 @@ int main(){
 			btCollisionObject* obj = dynamicsWorld->getCollisionObjectArray()[i];
 			btRigidBody* body = btRigidBody::upcast(obj);
 			if (body && body->getMotionState()) {
-				body->getMotionState()->getWorldTransform(meshes[i - 1].transform);
+				body->getMotionState()->getWorldTransform(meshes[i - 1]->transform);
 			}
 			else {
-				meshes[i - 1].transform = obj->getWorldTransform();
+				meshes[i - 1]->transform = obj->getWorldTransform();
 			}
 			//printf("world pos object %d = %f,%f,%f\n", i, float(meshes[i].transform.getOrigin().getX()), float(meshes[i].transform.getOrigin().getY()), float(meshes[i].transform.getOrigin().getZ()));
 		}
@@ -714,6 +727,8 @@ int main(){
 
 #pragma endregion
 
+
+
 #pragma region MVP matrices
 
 		// Model, view, and projection matrices
@@ -743,14 +758,14 @@ int main(){
 			glm::mat4 specificModel = model;
 
 			glm::vec3 p(
-				meshes[i].transform.getOrigin().getX(), 
-				meshes[i].transform.getOrigin().getY(), 
-				meshes[i].transform.getOrigin().getZ());
+				meshes[i]->transform.getOrigin().getX(), 
+				meshes[i]->transform.getOrigin().getY(), 
+				meshes[i]->transform.getOrigin().getZ());
 			glm::quat o(
-				meshes[i].transform.getRotation().getW(),
-				meshes[i].transform.getRotation().getX(),
-				meshes[i].transform.getRotation().getY(),
-				meshes[i].transform.getRotation().getZ());	
+				meshes[i]->transform.getRotation().getW(),
+				meshes[i]->transform.getRotation().getX(),
+				meshes[i]->transform.getRotation().getY(),
+				meshes[i]->transform.getRotation().getZ());	
 
 			glm::mat4 translate = glm::translate(p);
 			glm::mat4 rotate = glm::toMat4(o);
@@ -760,9 +775,9 @@ int main(){
 
 			GLCALL(glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(specificModel)));
 
-			GLCALL(glActiveTexture(GL_TEXTURE0 + meshes[i].textureID));
-			GLCALL(glBindTexture(GL_TEXTURE_2D, textures[meshes[i].textureID])); // BIND TEXTURE
-			GLCALL(glUniform1i(uniTexture, meshes[i].textureID));
+			GLCALL(glActiveTexture(GL_TEXTURE0 + meshes[i]->textureID));
+			GLCALL(glBindTexture(GL_TEXTURE_2D, textures[meshes[i]->textureID])); // BIND TEXTURE
+			GLCALL(glUniform1i(uniTexture, meshes[i]->textureID));
 
 			GLCALL(glBufferData(GL_ARRAY_BUFFER, VBOs[i].size() * sizeof(GLfloat), &VBOs[i][0], GL_STATIC_DRAW));
 			GLCALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, EBOs[i].size() * sizeof(unsigned short), &EBOs[i][0], GL_STATIC_DRAW));
