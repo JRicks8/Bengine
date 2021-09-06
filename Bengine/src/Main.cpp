@@ -241,26 +241,30 @@ int main(){
 	unsigned int counter = 0;
 
 	//smooth suzanne
-	Mesh suzanne = CreateMesh("suzanne", 0, SMOOTH_SUZANNE, meshes);
-	meshes.push_back(suzanne);
+	meshes.push_back(CreateMesh("suzanne", 0, SMOOTH_SUZANNE, meshes));
+	Mesh* suzanne = &meshes[meshes.size() - 1];
 	
 	//cylinder
-	Mesh cylinder = CreateMesh("cylinder", 0, CYLINDER, meshes);
-	meshes.push_back(cylinder);
+	meshes.push_back(CreateMesh("cylinder", 0, CYLINDER, meshes));
+	Mesh* cylinder = &meshes[meshes.size() - 1];
 	
 	//icosphere
-	Mesh icosphere = CreateMesh("icosphere", 0, ICOSPHERE, meshes);
-	meshes.push_back(icosphere);
+	meshes.push_back(CreateMesh("icosphere", 0, ICOSPHERE, meshes));
+	Mesh* icosphere = &meshes[meshes.size() - 1];
 
 	//player head
-	Mesh head = CreateMesh("player_head", 0, PLAYER_HEAD, meshes);
-	meshes.push_back(head);
+	meshes.push_back(CreateMesh("player_head", 0, PLAYER_HEAD, meshes));
+	Mesh* head = &meshes[meshes.size() - 1];
 
-	//player arm
-	for (int i = 0; i < 4; i++) {
-		Mesh arm = CreateMesh("player_arm" + i, 0, PLAYER_ARM, meshes);
-		meshes.push_back(arm);
-	}
+	//player arms
+	meshes.push_back(CreateMesh("player_arm0", 0, PLAYER_ARM, meshes));
+	Mesh* player_arm0 = &meshes[meshes.size() - 1];
+	meshes.push_back(CreateMesh("player_arm1", 0, PLAYER_ARM, meshes));
+	Mesh* player_arm1 = &meshes[meshes.size() - 1];
+	meshes.push_back(CreateMesh("player_arm2", 0, PLAYER_ARM, meshes));
+	Mesh* player_arm2 = &meshes[meshes.size() - 1];
+	meshes.push_back(CreateMesh("player_arm3", 0, PLAYER_ARM, meshes));
+	Mesh* player_arm3 = &meshes[meshes.size() - 1];
 
 	//player hand
 	Mesh hand0 = CreateMesh("player_hand0", 1, PLAYER_HAND, meshes);
