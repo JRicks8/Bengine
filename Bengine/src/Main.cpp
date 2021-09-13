@@ -162,6 +162,15 @@ static btTriangleMesh* GenerateTriangleCollisionMesh(std::vector<std::vector<uns
 	return triMesh;
 }
 
+static btGeneric6DofConstraint* CreateGenericConstraint(btVector3 p1, btVector3 p2, btRigidBody &rb1, btRigidBody &rb2) {
+	btTransform frameInA = btTransform::getIdentity();
+	btTransform frameInB = btTransform::getIdentity();
+	frameInA.setOrigin(p1);
+	frameInB.setOrigin(p2);
+	btGeneric6DofConstraint* constr = new btGeneric6DofConstraint(rb1, rb2, frameInA, frameInB, true);
+	return constr;
+}
+
 int main(){
 	GLFWwindow* window;
 
@@ -249,6 +258,12 @@ int main(){
 	meshes.push_back(CreateMesh());
 
 	//player Left Hand Anchor Collider
+	meshes.push_back(CreateMesh());
+
+	//player Right Shoulder Collider
+	meshes.push_back(CreateMesh());
+
+	//player Left Shoulder Collider
 	meshes.push_back(CreateMesh());
 
 		//dynamic meshes (not deformable)
@@ -366,6 +381,7 @@ int main(){
 
 	//collision shapes
 	btAlignedObjectArray<btCollisionShape*> collisionShapes;
+	btCollisionShape* playerCapsuleShape = new btCapsuleShape(btScalar(1.0), btScalar(2.0));
 	btCollisionShape* sphereShape = new btSphereShape(btScalar(1.));
 	btCollisionShape* playerJointShape = new btSphereShape(btScalar(0.215));
 	btCollisionShape* cylinderShape = new btCylinderShape(btVector3(1, 1, 1));
@@ -377,39 +393,13 @@ int main(){
 	btBvhTriangleMeshShape* farm_houseShape = new btBvhTriangleMeshShape(GenerateTriangleCollisionMesh(EBOs, VBOs, *farm_house), true);
 	btBvhTriangleMeshShape* farm_houseRoofShape = new btBvhTriangleMeshShape(GenerateTriangleCollisionMesh(EBOs, VBOs, *farm_houseRoof), true);
 
-	btRigidBody* body;
-	btTransform frameInA, frameInB;
-
 		//Colliders
-	//Player
-	{
-		btCollisionShape* colShape = new btCapsuleShape(btScalar(1.0), btScalar(2.0));
-		collisionShapes.push_back(colShape);
-
-		/// Create Dynamic Objects
-		btTransform startTransform;
-		startTransform.setIdentity();
-
-		btScalar mass(1.f);
-
-		//rigidbody is dynamic if and only if mass is non zero, otherwise static
-		bool isDynamic = (mass != 0.f);
-
-		btVector3 localInertia(0, 0, 0);
-		if (isDynamic)
-			colShape->calculateLocalInertia(mass, localInertia);
-
-		startTransform.setOrigin(btVector3(0, 3, 0));
-
-		//using motionstate is recommended, it provides interpolation capabilities, and only synchronizes 'active' objects
-		btDefaultMotionState* myMotionState = new btDefaultMotionState(startTransform);
-		btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, colShape, localInertia);
-		btRigidBody* body = new btRigidBody(rbInfo);
-		body->setAngularFactor(btScalar(0));
-		body->setFriction(btScalar(0));
-
-		dynamicsWorld->addRigidBody(body);
-	}
+	//player capsule
+	CreateObject(btVector3(0, 3, 0), 5.0f,
+		playerCapsuleShape, collisionShapes, dynamicsWorld);
+	btRigidBody* playerCapsuleObject = btRigidBody::upcast(dynamicsWorld->getCollisionObjectArray()[dynamicsWorld->getNumCollisionObjects() - 1]);
+	playerCapsuleObject->setAngularFactor(0);
+	playerCapsuleObject->setFriction(0);
 
 	//Right hand anchor collider
 	CreateObject(btVector3(0, 0, 0), 0.0f,
@@ -420,6 +410,20 @@ int main(){
 	CreateObject(btVector3(0, 0, 0), 0.0f,
 		playerJointShape, collisionShapes, dynamicsWorld);
 	btRigidBody* playerLeftHandAnchor = btRigidBody::upcast(dynamicsWorld->getCollisionObjectArray()[dynamicsWorld->getNumCollisionObjects() - 1]);
+
+	//Right shoulder anchor collider
+	CreateObject(btVector3(0, 0, 0), 0.0f,
+		playerJointShape, collisionShapes, dynamicsWorld);
+	btRigidBody* playerRightShoulderAnchor = btRigidBody::upcast(dynamicsWorld->getCollisionObjectArray()[dynamicsWorld->getNumCollisionObjects() - 1]);
+
+	playerRightShoulderAnchor->setIgnoreCollisionCheck(playerCapsuleObject, true);
+
+	//Left shoulder anchor collider
+	CreateObject(btVector3(0, 0, 0), 0.0f,
+		playerJointShape, collisionShapes, dynamicsWorld);
+	btRigidBody* playerLeftShoulderAnchor = btRigidBody::upcast(dynamicsWorld->getCollisionObjectArray()[dynamicsWorld->getNumCollisionObjects() - 1]);
+
+	playerLeftShoulderAnchor->setIgnoreCollisionCheck(playerCapsuleObject, true);
 
 	//smooth suzanne
 	CreateObject(btVector3(-3, 3, 0), 1.0f,
@@ -433,86 +437,105 @@ int main(){
 	CreateObject(btVector3(-2, 7, 0), 1.0f,
 		sphereShape, collisionShapes, dynamicsWorld);
 
+	const double hand2Wrist = 0.66;
+	const double arm2Joint = -1.26;
+	const double joint2Arm = 0.06;
+
 	//player head
 	CreateObject(btVector3(-4, 7, 0), 1.0f,
 		sphereShape, collisionShapes, dynamicsWorld);
 
 	//player arms
-	CreateObject(btVector3(-6, 7, 0), 1.0f,
+	CreateObject(btVector3(-6, 7, 0), 0.2f,
 		playerArmShape, collisionShapes, dynamicsWorld);
-	btRigidBody* playerForearmRight = btRigidBody::upcast(dynamicsWorld->getCollisionObjectArray()[dynamicsWorld->getNumCollisionObjects() - 1]);
-	CreateObject(btVector3(-6, 7, 0), 1.0f,
+	btRigidBody* playerRightForearm = btRigidBody::upcast(dynamicsWorld->getCollisionObjectArray()[dynamicsWorld->getNumCollisionObjects() - 1]);
+
+	CreateObject(btVector3(-6, 7, 0), 0.2f,
 		playerArmShape, collisionShapes, dynamicsWorld);
-	btRigidBody* playerForearmLeft = btRigidBody::upcast(dynamicsWorld->getCollisionObjectArray()[dynamicsWorld->getNumCollisionObjects() - 1]);
-	CreateObject(btVector3(-6, 7, 0), 1.0f,
+	btRigidBody* playerLeftForearm = btRigidBody::upcast(dynamicsWorld->getCollisionObjectArray()[dynamicsWorld->getNumCollisionObjects() - 1]);
+
+	CreateObject(btVector3(-6, 7, 0), 0.2f,
 		playerArmShape, collisionShapes, dynamicsWorld);
-	btRigidBody* playerUpperArmRight = btRigidBody::upcast(dynamicsWorld->getCollisionObjectArray()[dynamicsWorld->getNumCollisionObjects() - 1]);
-	CreateObject(btVector3(-6, 7, 0), 1.0f,
+	btRigidBody* playerRightUpperArm = btRigidBody::upcast(dynamicsWorld->getCollisionObjectArray()[dynamicsWorld->getNumCollisionObjects() - 1]);
+	playerRightUpperArm->setIgnoreCollisionCheck(playerRightShoulderAnchor, true);
+
+	dynamicsWorld->addConstraint(CreateGenericConstraint(btVector3(0, 0, 0), btVector3(0, arm2Joint, 0), *playerRightShoulderAnchor, *playerRightUpperArm)); // right shoulder and upper arm
+
+	CreateObject(btVector3(-6, 7, 0), 0.2f,
 		playerArmShape, collisionShapes, dynamicsWorld);
-	btRigidBody* playerUpperArmLeft = btRigidBody::upcast(dynamicsWorld->getCollisionObjectArray()[dynamicsWorld->getNumCollisionObjects() - 1]);
+	btRigidBody* playerLeftUpperArm = btRigidBody::upcast(dynamicsWorld->getCollisionObjectArray()[dynamicsWorld->getNumCollisionObjects() - 1]);
+	playerLeftUpperArm->setIgnoreCollisionCheck(playerLeftShoulderAnchor, true);
+
+	dynamicsWorld->addConstraint(CreateGenericConstraint(btVector3(0, 0, 0), btVector3(0, arm2Joint, 0), *playerLeftShoulderAnchor, *playerLeftUpperArm)); // left shoulder and upper arm
 
 #pragma region hands
 	//player hand right
 	CreateObject(btVector3(-8, 7, 0), 0.2f,
 		playerArmShape, collisionShapes, dynamicsWorld);
-	btRigidBody* playerHandRight = btRigidBody::upcast(dynamicsWorld->getCollisionObjectArray()[dynamicsWorld->getNumCollisionObjects() - 1]);
-	playerHandRight->setIgnoreCollisionCheck(playerRightHandAnchor, true);
-	frameInA = btTransform::getIdentity();
-	frameInB = btTransform::getIdentity();
-	frameInA.setOrigin(btVector3(0, 0, 0));
-	frameInB.setOrigin(btVector3(0, 0, 0));
-	btGeneric6DofConstraint* constrRightHandAnchorAndHand = new btGeneric6DofConstraint(*playerHandRight, *playerRightHandAnchor, frameInA, frameInB, true);
-	dynamicsWorld->addConstraint(constrRightHandAnchorAndHand);
+	btRigidBody* playerRightHand = btRigidBody::upcast(dynamicsWorld->getCollisionObjectArray()[dynamicsWorld->getNumCollisionObjects() - 1]);
+	playerRightHand->setIgnoreCollisionCheck(playerRightHandAnchor, true);
+	playerRightHand->setIgnoreCollisionCheck(playerRightForearm, true);
+
+	dynamicsWorld->addConstraint(CreateGenericConstraint(btVector3(0, 0, 0), btVector3(0, 0, 0), *playerRightHand, *playerRightHandAnchor)); // right hand & anchor
 
 	//player hand left
 	CreateObject(btVector3(-8, 7, 0), 0.2f,
 		playerArmShape, collisionShapes, dynamicsWorld);
-	btRigidBody* playerHandLeft = btRigidBody::upcast(dynamicsWorld->getCollisionObjectArray()[dynamicsWorld->getNumCollisionObjects() - 1]);
-	playerHandLeft->setIgnoreCollisionCheck(playerLeftHandAnchor, true);
-	frameInA = btTransform::getIdentity();
-	frameInB = btTransform::getIdentity();
-	frameInA.setOrigin(btVector3(0, 0, 0));
-	frameInB.setOrigin(btVector3(0, 0, 0));
-	btGeneric6DofConstraint* constrLeftHandAnchorAndHand = new btGeneric6DofConstraint(*playerHandLeft, *playerLeftHandAnchor, frameInA, frameInB, true);
-	dynamicsWorld->addConstraint(constrLeftHandAnchorAndHand);
+	btRigidBody* playerLeftHand = btRigidBody::upcast(dynamicsWorld->getCollisionObjectArray()[dynamicsWorld->getNumCollisionObjects() - 1]);
+	playerLeftHand->setIgnoreCollisionCheck(playerLeftHandAnchor, true);
+	playerLeftHand->setIgnoreCollisionCheck(playerLeftForearm, true);
+
+	dynamicsWorld->addConstraint(CreateGenericConstraint(btVector3(0, 0, 0), btVector3(0, 0, 0), *playerLeftHand, *playerLeftHandAnchor)); // left hand & anchor
 #pragma endregion
 #pragma region joints
 	//player joints
+	//right wrist
 	CreateObject(btVector3(-6, 7, 2), 0.1f,
 		playerJointShape, collisionShapes, dynamicsWorld);
 	btRigidBody* playerRightWrist = btRigidBody::upcast(dynamicsWorld->getCollisionObjectArray()[dynamicsWorld->getNumCollisionObjects() - 1]);
-	playerRightWrist->setIgnoreCollisionCheck(playerHandRight, true);
-	playerRightWrist->setIgnoreCollisionCheck(playerForearmRight, true);
-	frameInA = btTransform::getIdentity();
-	frameInB = btTransform::getIdentity();
-	frameInA.setOrigin(btVector3(0.0, 0.0, 0.0));
-	frameInB.setOrigin(btVector3(0.0, 0.7, 0.0));
-	btGeneric6DofConstraint* constrRightWristAndHand = new btGeneric6DofConstraint(*playerRightWrist, *playerHandRight, frameInA, frameInB, true);
-	dynamicsWorld->addConstraint(constrRightWristAndHand);
+	playerRightWrist->setIgnoreCollisionCheck(playerRightHand, true);
+	playerRightWrist->setIgnoreCollisionCheck(playerRightForearm, true);
+	playerRightWrist->setAngularFactor(0);
 
-	CreateObject(btVector3(-6, 7, 2), 1.0f,
+	dynamicsWorld->addConstraint(CreateGenericConstraint(btVector3(0, 0, 0), btVector3(0, hand2Wrist, 0), *playerRightWrist, *playerRightHand)); // right wrist and hand
+
+	dynamicsWorld->addConstraint(CreateGenericConstraint(btVector3(0, 0, 0), btVector3(0, joint2Arm, 0), *playerRightWrist, *playerRightForearm)); // right wrist and forearm
+
+	//left wrist
+	CreateObject(btVector3(-6, 7, 2), 0.1f,
 		playerJointShape, collisionShapes, dynamicsWorld);
 	btRigidBody* playerLeftWrist = btRigidBody::upcast(dynamicsWorld->getCollisionObjectArray()[dynamicsWorld->getNumCollisionObjects() - 1]);
-	playerLeftWrist->setIgnoreCollisionCheck(playerHandLeft, true);
-	playerLeftWrist->setIgnoreCollisionCheck(playerForearmLeft, true);
-	frameInA = btTransform::getIdentity();
-	frameInB = btTransform::getIdentity();
-	frameInA.setOrigin(btVector3(0.0, 0.0, 0.0));
-	frameInB.setOrigin(btVector3(0.0, 0.7, 0.0));
-	btGeneric6DofConstraint* constrLeftWristAndHand = new btGeneric6DofConstraint(*playerLeftWrist, *playerHandLeft, frameInA, frameInB, true);
-	dynamicsWorld->addConstraint(constrLeftWristAndHand);
+	playerLeftWrist->setIgnoreCollisionCheck(playerLeftHand, true);
+	playerLeftWrist->setIgnoreCollisionCheck(playerLeftForearm, true);
+	playerLeftWrist->setAngularFactor(0);
 
-	CreateObject(btVector3(-6, 7, 2), 1.0f,
+	dynamicsWorld->addConstraint(CreateGenericConstraint(btVector3(0, 0, 0), btVector3(0, hand2Wrist, 0), *playerLeftWrist, *playerLeftHand)); // left wrist and hand
+
+	dynamicsWorld->addConstraint(CreateGenericConstraint(btVector3(0, 0, 0), btVector3(0, joint2Arm, 0), *playerLeftWrist, *playerLeftForearm)); // left wrist and forearm
+
+	//right elbow
+	CreateObject(btVector3(-6, 7, 2), 0.1f,
 		playerJointShape, collisionShapes, dynamicsWorld);
 	btRigidBody* playerRightElbow = btRigidBody::upcast(dynamicsWorld->getCollisionObjectArray()[dynamicsWorld->getNumCollisionObjects() - 1]);
-	playerRightElbow->setIgnoreCollisionCheck(playerForearmRight, true);
-	playerRightElbow->setIgnoreCollisionCheck(playerUpperArmRight, true);
+	playerRightElbow->setIgnoreCollisionCheck(playerRightForearm, true);
+	playerRightElbow->setIgnoreCollisionCheck(playerRightUpperArm, true);
+	playerRightElbow->setAngularFactor(0);
 
-	CreateObject(btVector3(-6, 7, 2), 1.0f,
+	dynamicsWorld->addConstraint(CreateGenericConstraint(btVector3(0, 0, 0), btVector3(0, arm2Joint, 0), *playerRightElbow, *playerRightForearm)); // right elbow and forearm
+
+	dynamicsWorld->addConstraint(CreateGenericConstraint(btVector3(0, 0, 0), btVector3(0, joint2Arm, 0), *playerRightElbow, *playerRightUpperArm)); // right elbow and upper arm
+
+	//left elbow
+	CreateObject(btVector3(-6, 7, 2), 0.1f,
 		playerJointShape, collisionShapes, dynamicsWorld);
 	btRigidBody* playerLeftElbow = btRigidBody::upcast(dynamicsWorld->getCollisionObjectArray()[dynamicsWorld->getNumCollisionObjects() - 1]);
-	playerLeftElbow->setIgnoreCollisionCheck(playerForearmLeft, true);
-	playerLeftElbow->setIgnoreCollisionCheck(playerUpperArmLeft, true);
+	playerLeftElbow->setIgnoreCollisionCheck(playerLeftForearm, true);
+	playerLeftElbow->setIgnoreCollisionCheck(playerLeftUpperArm, true);
+	playerLeftElbow->setAngularFactor(0);
+
+	dynamicsWorld->addConstraint(CreateGenericConstraint(btVector3(0, 0, 0), btVector3(0, arm2Joint, 0), *playerLeftElbow, *playerLeftForearm)); // left elbow and forearm
+
+	dynamicsWorld->addConstraint(CreateGenericConstraint(btVector3(0, 0, 0), btVector3(0, joint2Arm, 0), *playerLeftElbow, *playerLeftUpperArm)); // left elbow and upper arm
 #pragma endregion
 
 		//Static members
@@ -606,7 +629,7 @@ int main(){
 	player.cam_offset = glm::vec3(0, 1.5f, 0);
 	player.fov = 70.0f;
 
-	player.speed = 10.0f / 500.0f;
+	player.speed = 50.0f / 500.0f;
 	player.mouseSpeed = 2.5f / 500.0f;
 
 	player.grounded = false;
@@ -772,6 +795,27 @@ int main(){
 		{ //do player model physics
 			playerRightHandAnchor->getWorldTransform().setOrigin(btVector3(Vec3ToBt(player.GetRArmAnchor(front, right)))); // set position of anchor collider to position of anchor world position
 			playerLeftHandAnchor->getWorldTransform().setOrigin(btVector3(Vec3ToBt(player.GetLArmAnchor(front, right))));
+			playerRightShoulderAnchor->getWorldTransform().setOrigin(btVector3(Vec3ToBt(player.GetRShoulderAnchor(right))));
+			playerLeftShoulderAnchor->getWorldTransform().setOrigin(btVector3(Vec3ToBt(player.GetLShoulderAnchor(right))));
+
+			const btVector3 playerModelGravity = Vec3ToBt(up) * -20;
+			playerRightHand->setGravity(playerModelGravity);
+			playerRightHand->setAngularVelocity(btVector3(playerRightHand->getAngularVelocity().x(), 0.0, playerRightHand->getAngularVelocity().getZ()));
+			playerRightWrist->setGravity(playerModelGravity);
+			playerRightForearm->setGravity(playerModelGravity);
+			playerRightForearm->setAngularVelocity(btVector3(playerRightForearm->getAngularVelocity().x(), 0.0, playerRightForearm->getAngularVelocity().getZ()));
+			playerRightElbow->setGravity(playerModelGravity);
+			playerRightUpperArm->setGravity(playerModelGravity);
+			playerRightUpperArm->setAngularVelocity(btVector3(playerRightUpperArm->getAngularVelocity().x(), 0.0, playerRightUpperArm->getAngularVelocity().getZ()));
+
+			playerLeftHand->setGravity(playerModelGravity);
+			playerLeftHand->setAngularVelocity(btVector3(playerLeftHand->getAngularVelocity().x(), 0.0, playerLeftHand->getAngularVelocity().getZ()));
+			playerLeftWrist->setGravity(playerModelGravity);
+			playerLeftForearm->setGravity(playerModelGravity);
+			playerLeftForearm->setAngularVelocity(btVector3(playerLeftForearm->getAngularVelocity().x(), 0.0, playerLeftForearm->getAngularVelocity().getZ()));
+			playerLeftElbow->setGravity(playerModelGravity);
+			playerLeftUpperArm->setGravity(playerModelGravity);
+			playerLeftUpperArm->setAngularVelocity(btVector3(playerLeftUpperArm->getAngularVelocity().x(), 0.0, playerLeftUpperArm->getAngularVelocity().getZ()));
 		}
 
 		{ //do player physics
