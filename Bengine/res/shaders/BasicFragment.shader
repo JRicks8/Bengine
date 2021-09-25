@@ -1,6 +1,7 @@
 #version 330 core
 
-in vec2 UV;
+//in vec2 UV;
+in vec4 Color;
 in vec3 Normal;
 
 in vec3 VertexPosition_Worldspace;
@@ -10,7 +11,7 @@ in vec3 EyeDirection_cameraspace;
 
 out vec4 outColor;
 
-uniform sampler2D tex;
+//uniform sampler2D tex;
 uniform vec3 lightposition_worldspace;
 uniform vec3 lightcolor;
 uniform float lightpower;
@@ -26,7 +27,7 @@ void main() {
 	//triangle light reflection
 	vec3 R = reflect(-l, n);
 
-	vec4 materialdiffuse = texture(tex, UV);
+	vec4 materialdiffuse = Color;
 	vec3 materialambient = vec3(0.5, 0.5, 0.5) * materialdiffuse.xyz;
 	vec3 materialspecular = lightcolor;
 	float distance = length(lightposition_worldspace - VertexPosition_Worldspace);
@@ -34,9 +35,9 @@ void main() {
 	float cosAlpha = clamp(dot(E, R), 0, 1);
 
 	float cosTheta = clamp(dot(n, l), 0, 1); //take the dot product between incoming light and vertex normal, then clamp it to 0-1 in case the light is behind (resulting in neg value)
-	vec3 color = materialdiffuse.xyz * lightcolor * lightpower * cosTheta / (distance * distance)
+	vec3 finalColor = materialdiffuse.xyz * lightcolor * lightpower * cosTheta / (distance * distance)
 		+ materialspecular * lightcolor * lightpower * pow(cosAlpha, 5) / (distance * distance)
 		+ materialambient;
 
-	outColor = vec4(color, materialdiffuse.a);
+	outColor = vec4(finalColor, materialdiffuse.a);
 };

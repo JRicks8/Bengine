@@ -1,6 +1,7 @@
 #pragma once
 
 #include "LinearMath/btTransform.h"
+#include "glm.hpp"
 
 class Mesh {
 public:
@@ -8,6 +9,6 @@ public:
 	bool empty = false;
 	unsigned int meshIndex = 0;
 	unsigned int bufferIndex = 0;
-	unsigned int textureID = 0;
+	glm::vec4 color;
 	btTransform transform;
 };

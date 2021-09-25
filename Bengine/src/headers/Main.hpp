@@ -18,6 +18,7 @@
 
 #include "Mesh.hpp"
 #include "Player.hpp"
+#include "Color.hpp"
 
 #include "IndexVBO.hpp"
 #include "OBJLoader.hpp"

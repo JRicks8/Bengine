@@ -1,6 +1,6 @@
 #include "headers/Main.hpp"
 
-constexpr auto VERTEX_SIZE = 8;
+constexpr auto VERTEX_SIZE = 10;
 
 static void GLClearError() {
 
@@ -121,12 +121,12 @@ static void CreateObject(btVector3 origin, btScalar mass,
 	world->addRigidBody(body);
 }
 
-static Mesh* CreateMesh(const char* name, int texID, int meshIndex, std::vector<Mesh*>& meshes) {
+static Mesh* CreateMesh(const char* name, int meshIndex, glm::vec4 color, std::vector<Mesh*>& meshes) {
 	Mesh* newMesh = new Mesh();
 	newMesh->name = name;
-	newMesh->textureID = texID;
 	newMesh->meshIndex = meshIndex;
 	newMesh->bufferIndex = meshes.size();
+	newMesh->color = color;
 	return newMesh;
 }
 
@@ -169,6 +169,35 @@ static btGeneric6DofConstraint* CreateGenericConstraint(btVector3 p1, btVector3 
 	frameInB.setOrigin(p2);
 	btGeneric6DofConstraint* constr = new btGeneric6DofConstraint(rb1, rb2, frameInA, frameInB, true);
 	return constr;
+}
+
+static void InjectColorAttrib(glm::vec4 color, std::vector<float>& vertexBuffer) {
+	std::vector<float> temp;
+	for (int i = 0; i < vertexBuffer.size() / (VERTEX_SIZE - 4); i++) {
+		int vertIndex = i * (VERTEX_SIZE - 4);
+		temp.push_back(vertexBuffer[vertIndex + 0]); //push in position
+		temp.push_back(vertexBuffer[vertIndex + 1]);
+		temp.push_back(vertexBuffer[vertIndex + 2]);
+		temp.push_back(color.r); //push in color values
+		temp.push_back(color.g);
+		temp.push_back(color.b);
+		temp.push_back(color.a);
+		temp.push_back(vertexBuffer[vertIndex + 3]);
+		temp.push_back(vertexBuffer[vertIndex + 4]);
+		temp.push_back(vertexBuffer[vertIndex + 5]);
+	}
+
+	vertexBuffer = temp;
+}
+
+static void ChangeColorAttrib(glm::vec4 color, std::vector<float>& vertexBuffer) {
+	for (int i = 0; i < vertexBuffer.size() / VERTEX_SIZE; i++) {
+		int vertIndex = i * VERTEX_SIZE;
+		vertexBuffer[vertIndex + 3] = color.r;
+		vertexBuffer[vertIndex + 4] = color.g;
+		vertexBuffer[vertIndex + 5] = color.b;
+		vertexBuffer[vertIndex + 6] = color.a;
+	}
 }
 
 int main(){
@@ -268,74 +297,76 @@ int main(){
 
 		//dynamic meshes (not deformable)
 	//smooth suzanne
-	meshes.push_back(CreateMesh("suzanne", 0, SMOOTH_SUZANNE, meshes));
+	meshes.push_back(CreateMesh("suzanne", SMOOTH_SUZANNE, Color::brownChocolate, meshes));
 	Mesh* mesh_suzanne = meshes[meshes.size() - 1];
 
 	//cylinder
-	meshes.push_back(CreateMesh("cylinder", 0, CYLINDER, meshes));
+	meshes.push_back(CreateMesh("cylinder", CYLINDER, Color::blueBright, meshes));
 	Mesh* mesh_cylinder = meshes[meshes.size() - 1];
 	
 	//icosphere
-	meshes.push_back(CreateMesh("icosphere", 0, ICOSPHERE, meshes));
+	meshes.push_back(CreateMesh("icosphere", ICOSPHERE, Color::beige, meshes));
 	Mesh* mesh_icosphere = meshes[meshes.size() - 1];
 
 	//player head
-	meshes.push_back(CreateMesh("player_head", 0, PLAYER_HEAD, meshes));
+	meshes.push_back(CreateMesh("player_head", PLAYER_HEAD, Color::brown, meshes));
 	Mesh* mesh_playerHead = meshes[meshes.size() - 1];
 
 	//player hands
-	meshes.push_back(CreateMesh("player_handRight", 1, PLAYER_HAND, meshes));
+	meshes.push_back(CreateMesh("player_handRight", PLAYER_HAND, Color::orangeTan, meshes));
 	Mesh* mesh_playerRightHand = meshes[meshes.size() - 1];
 
-	meshes.push_back(CreateMesh("player_handLeft", 1, PLAYER_HAND, meshes));
+	meshes.push_back(CreateMesh("player_handLeft", PLAYER_HAND, Color::orangeTan, meshes));
 	Mesh* mesh_playerLeftHand = meshes[meshes.size() - 1];
 
 	//player arms
-	meshes.push_back(CreateMesh("player_armRightUpper", 0, PLAYER_ARM, meshes));
+	meshes.push_back(CreateMesh("player_armRightUpper", PLAYER_ARM, Color::brown, meshes));
 	Mesh* player_armRightUpper = meshes[meshes.size() - 1];
-	meshes.push_back(CreateMesh("player_armRightLower", 0, PLAYER_ARM, meshes));
+	meshes.push_back(CreateMesh("player_armRightLower", PLAYER_ARM, Color::brown, meshes));
 	Mesh* player_armRightLower = meshes[meshes.size() - 1];
-	meshes.push_back(CreateMesh("player_armLeftUpper", 0, PLAYER_ARM, meshes));
+	meshes.push_back(CreateMesh("player_armLeftUpper", PLAYER_ARM, Color::brown, meshes));
 	Mesh* player_armLeftUpper = meshes[meshes.size() - 1];
-	meshes.push_back(CreateMesh("player_armLeftLower", 0, PLAYER_ARM, meshes));
+	meshes.push_back(CreateMesh("player_armLeftLower", PLAYER_ARM, Color::brown, meshes));
 	Mesh* player_armLeftLower = meshes[meshes.size() - 1];
 
 	//player joint
-	meshes.push_back(CreateMesh("player_jointRightElbow", 1, PLAYER_JOINT, meshes));
+	meshes.push_back(CreateMesh("player_jointRightElbow", PLAYER_JOINT, Color::orangeTan, meshes));
 	Mesh* player_jointRightElbow = meshes[meshes.size() - 1];
-	meshes.push_back(CreateMesh("player_jointRightWrist", 1, PLAYER_JOINT, meshes));
+	meshes.push_back(CreateMesh("player_jointRightWrist", PLAYER_JOINT, Color::orangeTan, meshes));
 	Mesh* player_jointRightWrist = meshes[meshes.size() - 1];
-	meshes.push_back(CreateMesh("player_jointLeftElbow", 1, PLAYER_JOINT, meshes));
+	meshes.push_back(CreateMesh("player_jointLeftElbow", PLAYER_JOINT, Color::orangeTan, meshes));
 	Mesh* player_jointLeftElbow = meshes[meshes.size() - 1];
-	meshes.push_back(CreateMesh("player_jointLeftWrist", 1, PLAYER_JOINT, meshes));
+	meshes.push_back(CreateMesh("player_jointLeftWrist", PLAYER_JOINT, Color::orangeTan, meshes));
 	Mesh* player_jointLeftWrist = meshes[meshes.size() - 1];
 
 		//Static members
 
 	//plane
-	meshes.push_back(CreateMesh("plane", 0, PLANE, meshes));
+	meshes.push_back(CreateMesh("plane", PLANE, Color::greenForest, meshes));
 	Mesh* plane = meshes[meshes.size() - 1];
 
 	//farm area
-	meshes.push_back(CreateMesh("farm_area", 0, FARM_AREA, meshes));
+	meshes.push_back(CreateMesh("farm_area", FARM_AREA, Color::greenYellow, meshes));
 	Mesh* farm_area = meshes[meshes.size() - 1];
 
 	// farm house
-	meshes.push_back(CreateMesh("farm_house", 0, FARM_HOUSE, meshes));
+	meshes.push_back(CreateMesh("farm_house", FARM_HOUSE, Color::blueRoyal, meshes));
 	Mesh* farm_house = meshes[meshes.size() - 1];
 
 	// farm house roof
-	meshes.push_back(CreateMesh("farm_houseRoof", 0, FARM_ROOF, meshes));
+	meshes.push_back(CreateMesh("farm_houseRoof", FARM_ROOF, Color::burlyWood, meshes));
 	Mesh* farm_houseRoof = meshes[meshes.size() - 1];
 
 	//create cube rod stairs
 	for (int i = 0; i < 10; i++) {
-		meshes.push_back(CreateMesh("cube rod", 1, CUBE_ROD, meshes));
+		meshes.push_back(CreateMesh("cube rod", CUBE_ROD, Color::gray, meshes));
 	}
+
+#pragma endregion
 
 #pragma region Load model files and create buffer objects
 
-	std::vector<GLfloat> raw_vertex_data;
+	std::vector<GLfloat> rawVertexData;
 	std::vector<std::vector<GLfloat>> VBOs;
 	std::vector<std::vector<unsigned short>> EBOs;
 
@@ -345,12 +376,17 @@ int main(){
 		EBOs.push_back(std::vector<unsigned short>());
 		if (meshes[i]->empty)
 			continue;
-		loadOBJ(meshFilePaths[meshes[i]->meshIndex], raw_vertex_data);
-		indexVBO(raw_vertex_data, EBOs[i], VBOs[i], VERTEX_SIZE);
-		raw_vertex_data.clear();
+		loadOBJ(meshFilePaths[meshes[i]->meshIndex], rawVertexData);
+		InjectColorAttrib(meshes[i]->color, rawVertexData);
+		indexVBO(rawVertexData, EBOs[i], VBOs[i], VERTEX_SIZE);
+		rawVertexData.clear();
 	}
-
-	std::cout << VBOs.size() << " " << EBOs.size() << std::endl;
+	
+	//for (int i = 0; i < VBOs[mesh_suzanne->bufferIndex].size(); i++) {
+	//	std::cout << VBOs[mesh_suzanne->bufferIndex][i] << " ";
+	//	if (i % VERTEX_SIZE + 1 == 0 && i != 0)
+	//		std::cout << "\n";
+	//}
 
 	GLuint vao;
 	GLCALL(glGenVertexArrays(1, &vao));
@@ -368,12 +404,12 @@ int main(){
 	GLCALL(glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, VERTEX_SIZE * sizeof(GLfloat), (void*)0));
 	GLCALL(glEnableVertexAttribArray(posAttrib));
 
-	GLint uvAttrib = glGetAttribLocation(shaderProgram, "uv");
-	GLCALL(glVertexAttribPointer(uvAttrib, 2, GL_FLOAT, GL_FALSE, VERTEX_SIZE * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat))));
-	GLCALL(glEnableVertexAttribArray(uvAttrib));
+	GLint colorAttrib = glGetAttribLocation(shaderProgram, "color");
+	GLCALL(glVertexAttribPointer(colorAttrib, 4, GL_FLOAT, GL_FALSE, VERTEX_SIZE * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat))));
+	GLCALL(glEnableVertexAttribArray(colorAttrib));
 
 	GLint normalAttrib = glGetAttribLocation(shaderProgram, "normal");
-	GLCALL(glVertexAttribPointer(normalAttrib, 3, GL_FLOAT, GL_FALSE, VERTEX_SIZE * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat))));
+	GLCALL(glVertexAttribPointer(normalAttrib, 3, GL_FLOAT, GL_FALSE, VERTEX_SIZE * sizeof(GLfloat), (void*)(7 * sizeof(GLfloat))));
 	GLCALL(glEnableVertexAttribArray(normalAttrib));
 
 #pragma endregion
@@ -566,35 +602,36 @@ int main(){
 
 #pragma region Load Textures
 
-	const GLuint textureCount = 2;
-	GLuint textures[textureCount];
-	const char* textureFilePaths[textureCount] {
-		"textures/checker.png",
-		"textures/white.png"
-	};
-
-	unsigned char* images[textureCount];
-	int widths[textureCount], heights[textureCount];
-	
-	GLCALL(glGenTextures(textureCount, textures));
-	
-	for (int i = 0; i < textureCount; i++) {
-	
-		GLCALL(glActiveTexture(GL_TEXTURE0 + i));
-		GLCALL(glBindTexture(GL_TEXTURE_2D, textures[i])); // BIND TEXTURE
-	
-		images[i] = SOIL_load_image(textureFilePaths[i], &widths[i], &heights[i], 0, SOIL_LOAD_RGB); // LOAD IMAGE
-		GLCALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, widths[i], heights[i], 0, GL_RGB,
-			GL_UNSIGNED_BYTE, images[i]));
-		SOIL_free_image_data(images[i]);
-	
-		GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)); // IMAGE PARAMETERS
-		GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));
-		GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
-		GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
-	
-		GLCALL(glGenerateMipmap(GL_TEXTURE_2D));
-	}
+	//CURRENTLY TEXTURES ARE UNUSED
+	//const GLuint textureCount = 2;
+	//GLuint textures[textureCount];
+	//const char* textureFilePaths[textureCount] {
+	//	"textures/checker.png",
+	//	"textures/white.png"
+	//};
+	//
+	//unsigned char* images[textureCount];
+	//int widths[textureCount], heights[textureCount];
+	//
+	//GLCALL(glGenTextures(textureCount, textures));
+	//
+	//for (int i = 0; i < textureCount; i++) {
+	//
+	//	GLCALL(glActiveTexture(GL_TEXTURE0 + i));
+	//	GLCALL(glBindTexture(GL_TEXTURE_2D, textures[i])); // BIND TEXTURE
+	//
+	//	images[i] = SOIL_load_image(textureFilePaths[i], &widths[i], &heights[i], 0, SOIL_LOAD_RGB); // LOAD IMAGE
+	//	GLCALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, widths[i], heights[i], 0, GL_RGB,
+	//		GL_UNSIGNED_BYTE, images[i]));
+	//	SOIL_free_image_data(images[i]);
+	//
+	//	GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)); // IMAGE PARAMETERS
+	//	GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));
+	//	GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+	//	GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+	//
+	//	GLCALL(glGenerateMipmap(GL_TEXTURE_2D));
+	//}
 	
 
 #pragma endregion
@@ -611,7 +648,7 @@ int main(){
 	GLuint uniLightPower = glGetUniformLocation(shaderProgram, "lightpower");
 	GLuint uniLightColor = glGetUniformLocation(shaderProgram, "lightcolor");
 
-	GLuint uniTexture = glGetUniformLocation(shaderProgram, "tex");
+	//GLuint uniTexture = glGetUniformLocation(shaderProgram, "tex");
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
@@ -918,10 +955,10 @@ int main(){
 
 			GLCALL(glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(specificModel)));
 
-			GLCALL(glActiveTexture(GL_TEXTURE0 + meshes[i]->textureID));
-			GLCALL(glBindTexture(GL_TEXTURE_2D, textures[meshes[i]->textureID])); // BIND TEXTURE
-			GLCALL(glUniform1i(uniTexture, meshes[i]->textureID));
-
+			//GLCALL(glActiveTexture(GL_TEXTURE0 + meshes[i]->textureID));
+			//GLCALL(glBindTexture(GL_TEXTURE_2D, textures[meshes[i]->textureID])); // BIND TEXTURE
+			//GLCALL(glUniform1i(uniTexture, meshes[i]->textureID));
+			
 			GLCALL(glBufferData(GL_ARRAY_BUFFER, VBOs[i].size() * sizeof(GLfloat), &VBOs[i][0], GL_STATIC_DRAW));
 			GLCALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, EBOs[i].size() * sizeof(unsigned short), &EBOs[i][0], GL_STATIC_DRAW));
 

@@ -23,9 +23,9 @@ bool getSimilarVertexIndex(
 			is_near(in_vertex[2], out_vbo[i * vertex_size + 2]) &&
 			is_near(in_vertex[3], out_vbo[i * vertex_size + 3]) &&
 			is_near(in_vertex[4], out_vbo[i * vertex_size + 4]) &&
-			is_near(in_vertex[5], out_vbo[i * vertex_size + 5]) &&
-			is_near(in_vertex[6], out_vbo[i * vertex_size + 6]) &&
-			is_near(in_vertex[7], out_vbo[i * vertex_size + 7])
+			is_near(in_vertex[5], out_vbo[i * vertex_size + 5]) //&&
+			//is_near(in_vertex[6], out_vbo[i * vertex_size + 6]) &&
+			//is_near(in_vertex[7], out_vbo[i * vertex_size + 7])
 			) {
 			result = i;
 			return true;

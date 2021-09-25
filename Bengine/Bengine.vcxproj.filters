@@ -690,6 +690,9 @@
     <ClCompile Include="Dependencies\Bullet\Include\LinearMath\btVector3.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Color.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\shaders\BasicVertex.shader" />
@@ -1984,6 +1987,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Dependencies\Bullet\Include\btBulletDynamicsCommon.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\headers\Color.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

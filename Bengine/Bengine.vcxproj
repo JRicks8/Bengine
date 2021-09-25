@@ -371,6 +371,7 @@
     <ClCompile Include="Dependencies\Bullet\Include\LinearMath\TaskScheduler\btTaskScheduler.cpp" />
     <ClCompile Include="Dependencies\Bullet\Include\LinearMath\TaskScheduler\btThreadSupportPosix.cpp" />
     <ClCompile Include="Dependencies\Bullet\Include\LinearMath\TaskScheduler\btThreadSupportWin32.cpp" />
+    <ClCompile Include="src\Color.cpp" />
     <ClCompile Include="src\IndexVBO.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\OBJLoader.cpp" />
@@ -805,6 +806,7 @@
     <ClInclude Include="Dependencies\Bullet\Include\LinearMath\btTransformUtil.h" />
     <ClInclude Include="Dependencies\Bullet\Include\LinearMath\btVector3.h" />
     <ClInclude Include="Dependencies\Bullet\Include\LinearMath\TaskScheduler\btThreadSupportInterface.h" />
+    <ClInclude Include="src\headers\Color.hpp" />
     <ClInclude Include="src\headers\IndexVBO.hpp" />
     <ClInclude Include="src\headers\Main.hpp" />
     <ClInclude Include="src\headers\Mesh.hpp" />

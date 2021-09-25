@@ -1,11 +1,13 @@
 #version 330 core
 
 in vec3 vertexposition_local;
-in vec2 uv;
+//in vec2 uv;
+in vec4 color;
 in vec3 normal;
 
-out vec2 UV;
+//out vec2 UV;
 out vec3 Normal;
+out vec4 Color;
 
 out vec3 VertexPosition_Worldspace;
 out vec3 LightDirection_Cameraspace;
@@ -22,8 +24,9 @@ uniform vec3 lightposition_worldspace;
 
 void main()
 {
-    UV = uv;
+    //UV = uv;
     Normal = normal;
+    Color = color;
 
     gl_Position = proj * view * model * vec4(vertexposition_local, 1); // THE ORDER MATTERS, PLEASE DONT FORGET, FOR THE LOVE OF GOD. P * V * M
 
